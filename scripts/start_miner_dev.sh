@@ -20,6 +20,10 @@ GETH_ENODE=$(cat $ENODE)
 
 /geth --dev \
       --identity $GETH_ID \
+      --bootnodes $GETH_ENODE \
+      --mine \
+      --minerthreads 1 \
+      --etherbase $GETH_ETHERBASE \
       --networkid 1101 \
       --datadir /etc/testnet/$GETH_ID \
       --ipcpath /etc/testnet/$GETH_ID/geth.ipc \
@@ -28,9 +32,5 @@ GETH_ENODE=$(cat $ENODE)
       --rpcport $GETH_RPCPORT \
       --rpcapi "db,eth,net,web3,personal,web3" \
       --rpccorsdomain "*"  \
-      --nat any \
-      --bootnodes $GETH_ENODE \
-      --mine \
-      --minerthreads 1 \
-      --etherbase $GETH_ETHERBASE
+      --nat any
 
