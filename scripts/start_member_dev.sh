@@ -18,7 +18,8 @@ fi
 
 GETH_ENODE=$(cat $ENODE)
 
-/geth --identity $GETH_ID \
+/geth --dev \
+      --identity $GETH_ID \
       --networkid 1101 \
       --datadir /etc/testnet/$GETH_ID \
       --ipcpath /etc/testnet/$GETH_ID/geth.ipc \
