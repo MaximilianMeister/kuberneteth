@@ -1,0 +1,89 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: geth-node-deployment
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  template:
+    metadata:
+      name: geth-node-pod
+      labels:
+        app: geth-node
+    spec:
+      containers:
+      - name: geth-boot-node-container
+        image: mmeister/geth-node:boot
+        ports:
+          - containerPort: 8500
+          - containerPort: 30301
+        volumeMounts:
+        - name: geth-boot-node-persistent-storage
+          mountPath: /etc/testnet/bootnode
+        env:
+        - name: BOOTNODE_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+      - name: geth-miner-node-container
+        image: mmeister/geth-node:miner
+        env:
+        - name: GETH_ID
+          value: "miner"
+        - name: GETH_RPCPORT
+          value: "8501"
+        - name: GETH_PORT
+          value: "30302"
+        - name: GETH_ETHERBASE
+          value: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
+        ports:
+          - containerPort: 8501
+          - containerPort: 30302
+        volumeMounts:
+        - name: geth-boot-node-persistent-storage
+          mountPath: /etc/testnet/bootnode
+        - name: geth-miner-node-persistent-storage
+          mountPath: /etc/testnet/miner
+      - name: geth-member-node-container
+        image: mmeister/geth-node:member
+        env:
+        - name: GETH_ID
+          value: "member"
+        - name: GETH_RPCPORT
+          value: "8502"
+        - name: GETH_PORT
+          value: "30303"
+        ports:
+          - containerPort: 8502
+          - containerPort: 30303
+        volumeMounts:
+        - name: geth-boot-node-persistent-storage
+          mountPath: /etc/testnet/bootnode
+        - name: geth-member-node-persistent-storage
+          mountPath: /etc/testnet/member
+      - name: ethmonitor
+        image: mmeister/ethmonitor
+        env:
+        - name: NUMBER_OF_CLUSTERS
+          value: "3"
+        - name: NAME_PREFIX
+          value: "node"
+        - name: WS_SECRET
+          value: "supersecretpassword"
+        - name: WS_SERVER
+          value: "localhost:3001"
+        - name: RPC_PORT_PREFIX
+          value: "85"
+        ports:
+          - containerPort: 3001
+      volumes:
+      - name: geth-boot-node-persistent-storage
+        hostPath:
+          path: /var/lib/docker/geth-storage/bootnode
+      - name: geth-member-node-persistent-storage
+        hostPath:
+          path: /var/lib/docker/geth-storage/member
+      - name: geth-miner-node-persistent-storage
+        hostPath:
+          path: /var/lib/docker/geth-storage/miner

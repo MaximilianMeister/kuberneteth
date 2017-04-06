@@ -1,0 +1,18 @@
+FROM node:6
+
+RUN git clone https://github.com/cubedro/eth-netstats
+RUN cd /eth-netstats && npm install
+RUN cd /eth-netstats && npm install -g grunt-cli
+RUN cd /eth-netstats && grunt
+
+RUN git clone https://github.com/cubedro/eth-net-intelligence-api
+RUN cd /eth-net-intelligence-api && npm install
+RUN cd /eth-net-intelligence-api && npm install -g pm2
+RUN cd /eth-net-intelligence-api && \
+    wget https://raw.githubusercontent.com/MaximilianMeister/eth-utils/5db77cf112da0f3c71dcbc46d755808f32aefb37/netstatconf.sh
+
+ENV PORT 3001
+
+EXPOSE 3001
+
+CMD cd /eth-net-intelligence-api && bash netstatconf.sh > app.json && pm2 start app.json; cd /eth-netstats && npm start
