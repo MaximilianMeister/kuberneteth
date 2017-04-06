@@ -41,6 +41,7 @@ spec:
           - containerPort: 8501
           - containerPort: 30302
         volumeMounts:
+          # mount bootnode volume to get to the enode address
         - name: geth-boot-node-persistent-storage
           mountPath: /etc/testnet/bootnode
         - name: geth-miner-node-persistent-storage
@@ -58,6 +59,7 @@ spec:
           - containerPort: 8502
           - containerPort: 30303
         volumeMounts:
+          # mount bootnode volume to get to the enode address
         - name: geth-boot-node-persistent-storage
           mountPath: /etc/testnet/bootnode
         - name: geth-member-node-persistent-storage
