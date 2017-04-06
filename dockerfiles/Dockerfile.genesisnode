@@ -16,4 +16,4 @@ RUN \
 EXPOSE 8545
 EXPOSE 30303
 
-CMD ["/geth init /etc/testnet/Genesis-geth.json"]
+CMD ["/geth --datadir /etc/testnet/miner init /etc/testnet/Genesis-geth.json"]
