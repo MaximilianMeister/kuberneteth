@@ -46,6 +46,9 @@ spec:
           mountPath: /etc/testnet/bootnode
         - name: geth-genesis-miner-node-persistent-storage
           mountPath: /etc/testnet/genesis-miner
+        resources:
+          requests:
+            cpu: 1
       - name: geth-member-node-container
         image: mmeister/geth-node:member
         env:
@@ -64,6 +67,9 @@ spec:
           mountPath: /etc/testnet/bootnode
         - name: geth-member-node-persistent-storage
           mountPath: /etc/testnet/member
+        resources:
+          limits:
+            cpu: 0.1
       - name: ethmonitor
         image: mmeister/ethmonitor
         env:
@@ -79,6 +85,9 @@ spec:
           value: "85"
         ports:
           - containerPort: 3001
+        resources:
+          limits:
+            cpu: 0.1
       volumes:
       - name: geth-boot-node-persistent-storage
         hostPath:
