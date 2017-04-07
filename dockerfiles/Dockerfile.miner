@@ -4,8 +4,6 @@ RUN \
   apk add --update git go make gcc musl-dev linux-headers ca-certificates openssl bash && \
   update-ca-certificates                                                               && \
   git clone https://github.com/ethereum/go-ethereum                                    && \
-  # patch the difficulty bomb to be static http://ethereum.stackexchange.com/a/7158
-  sed -i 's|calcDifficultyHomestead(time, parentTime, parentNumber, parentDiff)|big.NewInt(0x400000)|g' go-ethereum/consensus/ethash/consensus.go && \
   (cd go-ethereum && make geth)                                                        && \
   cp go-ethereum/build/bin/geth /geth                                                  && \
   apk del git go make gcc musl-dev linux-headers                                       && \
@@ -18,4 +16,4 @@ RUN \
 EXPOSE 8545
 EXPOSE 30303
 
-ENTRYPOINT ["/start_miner.sh", "--genesis"]
+ENTRYPOINT ["/start_miner.sh"]

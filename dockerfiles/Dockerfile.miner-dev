@@ -18,4 +18,4 @@ RUN \
 EXPOSE 8545
 EXPOSE 30303
 
-ENTRYPOINT ["/start_miner.sh", "--genesis"]
+ENTRYPOINT ["/start_miner.sh"]

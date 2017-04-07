@@ -19,8 +19,10 @@ fi
 GETH_ENODE=$(cat $ENODE)
 
 # initialize first block
-wget https://raw.githubusercontent.com/MaximilianMeister/kubernet-eth/master/Genesis-geth.json -O /etc/testnet/Genesis-geth.json
-/geth --datadir /etc/testnet/$GETH_ID init /etc/testnet/Genesis-geth.json
+if ! [ -z "$1" ] &&  [ "$1" = "--genesis" ]; then
+  wget https://raw.githubusercontent.com/MaximilianMeister/kubernet-eth/master/Genesis-geth.json -O /etc/testnet/Genesis-geth.json
+  /geth --datadir /etc/testnet/$GETH_ID init /etc/testnet/Genesis-geth.json
+fi
 
 /geth --identity $GETH_ID \
       --bootnodes $GETH_ENODE \
