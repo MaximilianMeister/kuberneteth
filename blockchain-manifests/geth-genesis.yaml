@@ -12,10 +12,10 @@ spec:
       - containerPort: 8547
       - containerPort: 30300
     volumeMounts:
-    - name: geth-miner-node-persistent-storage
-      mountPath: /etc/testnet/miner
+    - name: geth-genesis-node-persistent-storage
+      mountPath: /etc/testnet/genesis
   volumes:
-  - name: geth-miner-node-persistent-storage
+  - name: geth-genesis-node-persistent-storage
     hostPath:
-      path: /var/lib/docker/geth-storage/miner
+      path: /var/lib/docker/geth-storage/genesis
   restartPolicy: Never
