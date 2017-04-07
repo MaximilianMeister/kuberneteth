@@ -27,7 +27,7 @@ spec:
             fieldRef:
               fieldPath: status.podIP
       - name: geth-miner-node-container
-        image: mmeister/geth-node:genesis-miner
+        image: mmeister/geth-node:genesis-miner-dev
         env:
         - name: GETH_ID
           value: "genesis-miner"
