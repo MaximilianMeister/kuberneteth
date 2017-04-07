@@ -18,6 +18,10 @@ fi
 
 GETH_ENODE=$(cat $ENODE)
 
+# initialize first block
+wget https://raw.githubusercontent.com/MaximilianMeister/kubernet-eth/master/Genesis-geth.json -O /etc/testnet/Genesis-geth.json
+/geth --datadir /etc/testnet/$GETH_ID init /etc/testnet/Genesis-geth.json
+
 /geth --identity $GETH_ID \
       --bootnodes $GETH_ENODE \
       --mine \

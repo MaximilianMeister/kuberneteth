@@ -10,10 +10,10 @@ RUN \
   rm -rf /go-ethereum && rm -rf /var/cache/apk/*
 
 RUN \
-  wget https://raw.githubusercontent.com/MaximilianMeister/kubernet-eth/master/scripts/start_miner.sh -O /start_miner.sh && \
-  chmod +x /start_miner.sh
+  wget https://raw.githubusercontent.com/MaximilianMeister/kubernet-eth/master/scripts/start_genesis_miner_dev.sh -O /start_genesis_miner_dev.sh && \
+  chmod +x /start_genesis_miner_dev.sh
 
 EXPOSE 8545
 EXPOSE 30303
 
-ENTRYPOINT ["/start_miner.sh"]
+ENTRYPOINT ["/start_genesis_miner_dev.sh"]

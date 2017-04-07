@@ -10,10 +10,10 @@ RUN \
   rm -rf /go-ethereum && rm -rf /var/cache/apk/*
 
 RUN \
-  mkdir -p /etc/testnet/genesis && \
-  wget https://raw.githubusercontent.com/MaximilianMeister/kubernet-eth/master/Genesis-geth.json -O /etc/testnet/genesis/Genesis-geth.json
+  wget https://raw.githubusercontent.com/MaximilianMeister/kubernet-eth/master/scripts/start_genesis_miner.sh -O /start_genesis_miner.sh && \
+  chmod +x /start_genesis_miner.sh
 
 EXPOSE 8545
 EXPOSE 30303
 
-CMD ["/geth --datadir /etc/testnet/genesis init /etc/testnet/genesis/Genesis-geth.json"]
+ENTRYPOINT ["/start_genesis_miner.sh"]
