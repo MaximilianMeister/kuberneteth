@@ -9,29 +9,37 @@ Make sure to have kubernetes up and running, either via the [official documentat
 * [velum](https://github.com/kubic-project/velum) - a dashboard to deploy and configure kubernetes clusters via docker containers
 * [kubernetes worker nodes](https://github.com/kubic-project/terraform/tree/master/contrib/libvirt) - an easy way to spawn x worker nodes via teraform and openSUSE
 
-## deployment and cluster setup
-the deployment of the ethereum network nodes happens via the [blockchain-manifests](blockchain-manifests/)
+## configuration
+the deployment can be configured on a high level via a yaml file [kuberneteth.yaml](kuberneteth.yaml)
 
-there are some very simple helper [scripts](scripts/) to deploy a [geth](https://github.com/ethereum/go-ethereum) cluster consisting of:
+options are:
+`nodes.miner.replicas`: number of miner nodes, where each miner node gets an individual name and rpc port assigned
+`nodes.member.replicas`: number of miner nodes, where each member node gets an individual name and rpc port assigned
+`discovery`: when discovery is set to true, a bootnode will be launched to connect the other nodes
+`consensus_engine`: can be ethash or clique (see https://godoc.org/github.com/ethereum/go-ethereum/consensus#Engine)
+
+## deployment and cluster setup
+the deployment of the ethereum network nodes happens via the [blockchain-manifests](blockchain-manifests/) that are created when calling the `kuberneteh` binary
+
+the [kuberneteth](kuberneteth) binary can be used to deploy a [geth](https://github.com/ethereum/go-ethereum) cluster consisting of:
 
 * a [bootnode](https://github.com/ethereum/go-ethereum/wiki/Setting-up-private-network-or-local-cluster#setup-bootnode)
-* a miner node (that also writes the genesis block initially)
-* a member node (just for having one)
+* genesis node (that writes the genesis block initially) - runs as a miner
+* miner node(s)
+* member node(s)
 * a monitor to watch the status of the cluster (via [ethereum-netstats](https://github.com/cubedro/eth-netstats) and [eth-net-intelligence-api](https://github.com/cubedro/eth-net-intelligence-api)
 
 ## limitations
 * persistent storage of blocks and any data that is usually in the `datadir` (like `.ethereum`) is done via [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) -> make sure to keep it clean, as it is not managed
-* the cluster setup is still fixed
 * the cluster runs in a single pod
 * depending on the workers (cpu) the mining time may vary
 * the mining difficulty is hardcoded, to avoid using the `--dev` flag of `geth` that uses too many unwanted/uncontrolled default values. the [mmeister/geth-node:genesis-miner-dev](dockerfiles/Dockerfile.genesis-miner-dev) image on dockerhub contains a [patch](https://github.com/MaximilianMeister/kubernet-eth/blob/master/dockerfiles/Dockerfile.genesis-miner-dev#L8) to defuse the "difficulty bomb"
-* all nodes are connected through the bootnode, which may be unwanted in some cases
 
 ## workflow
 once the kubernetes cluster is up and healthy (verify via `kubectl cluster-info`), you can deploy the geth cluster via the following sequence:
 
 ```bash
-./scripts/startup-geth.sh
+./kuberneteth deploy
 ```
 
 there are some services that are using specific ports to interact with the pods, which you can port forward to access them from your local machine.
@@ -58,7 +66,7 @@ if you're using mist to interact with the network, make sure to connect it to th
 to clean up and start from scratch:
 
 ```bash
-./scripts/teardown-geth.sh
+./kuberneteth teardown
 ```
 
 make sure to clean up the `hostPath` manually, I usually wipe all folders, but the `keystore` from the miner node to keep the `coinbase` in place

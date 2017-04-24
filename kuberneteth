@@ -1,0 +1,205 @@
+#!/usr/bin/env ruby
+
+require "yaml"
+
+config      = YAML.load_file("kuberneteth.yaml")
+nodes       = config["nodes"]
+nodenumber  = nodes["miner"]["replicas"]
+etherbase   = nodes["miner"]["etherbase"]
+
+#
+# Sanity Checks
+#
+abort "Number of nodes is limited to 100" if nodenumber > 100
+
+#
+# Service
+#
+File.open("deployment.yaml", "w") do |f|
+  f.puts <<EOT
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: geth-node-svc
+spec:
+  selector:
+    app: geth-node
+  type: NodePort
+  ports:
+EOT
+end
+
+1.upto(nodenumber) do |num|
+  num = format('%02d', num)
+  File.open("deployment.yaml", "a") do |f|
+    f.puts <<EOT
+    - name: node#{num}-jsonrpc
+      protocol: TCP
+      port: 85#{num}
+      targetPort: 85#{num}
+      nodePort: 300#{num}
+EOT
+  end
+end
+
+#
+# Genesis Pod
+#
+File.open("deployment.yaml", "a") do |f|
+  f.puts <<EOT
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: geth-genesis-node-pod
+  labels:
+    app: geth-node
+spec:
+  containers:
+  - name: geth-genesis-node-container
+    image: mmeister/geth-node:genesis
+  restartPolicy: Never
+EOT
+end
+
+#
+# Config Map
+#
+1.upto(nodenumber) do |num|
+  num = format('%02d', num)
+  File.open("deployment.yaml", "a") do |f|
+    f.puts <<EOT
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gethconfig-node#{num}
+  namespace: default
+data:
+  gethconfig: |
+    [Eth]
+    NetworkId = #{config["eth"]["networkId"]}
+    SyncMode = "fast"
+    LightPeers = 20
+    DatabaseCache = 128
+    GasPrice = 20000000000
+    EthashCacheDir = "ethash"
+    EthashCachesInMem = 2
+    EthashCachesOnDisk = 3
+    EthashDatasetDir = "/etc/testnet/node#{num}/.ethash"
+    EthashDatasetsInMem = 1
+    EthashDatasetsOnDisk = 2
+    EnablePreimageRecording = false
+
+    [Eth.GPO]
+    Blocks = 10
+    Percentile = 50
+
+    [Node]
+    DataDir = "/etc/testnet/node#{num}/.ethereum"
+    IPCPath = "/etc/testnet/node#{num}/geth.ipc"
+    HTTPPort = 85#{num}
+    HTTPModules = ["net", "web3", "eth"]
+    WSPort = 86#{num}
+    WSModules = ["net", "web3", "eth"]
+
+    [Node.P2P]
+    MaxPeers = 25
+    NoDiscovery = false
+    BootstrapNodes = []
+    StaticNodes = []
+    TrustedNodes = []
+    ListenAddr = ":303#{num}"
+EOT
+  end
+end
+
+
+#
+# Cluster Deployment
+#
+File.open("deployment.yaml", "a") do |f|
+  f.puts <<EOT
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: geth-node-deployment
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  template:
+    metadata:
+      name: geth-node-pod
+      labels:
+        app: geth-node
+    spec:
+      containers:
+EOT
+end
+
+# Geth
+1.upto(nodenumber) do |num|
+  num = format('%02d', num)
+  File.open("deployment.yaml", "a") do |f|
+    f.puts <<EOT
+      - name: geth-node#{num}-container
+        image: ethereum/client-go:v#{config["geth"]["version"]}
+        command: [ "/bin/sh", "-c" ]
+        args: [ "/geth", "--config", "/etc/testnet/node#{num}/config/gethconfig.toml" ]
+          volumeMounts:
+          - name: config-volume
+            mountPath: /etc/testnet
+        ports:
+          - containerPort: 85#{num}
+          - containerPort: 303#{num}
+        volumeMounts:
+        - name: geth-node#{num}-persistent-storage
+          mountPath: /etc/testnet/node#{num}
+        - name: geth-node#{num}-config-persistent-storage
+          mountPath: /etc/testnet/node#{num}/config
+EOT
+  end
+end
+
+# Monitoring
+File.open("deployment.yaml", "a") do |f|
+  f.puts <<EOT
+      - name: ethmonitor
+        image: mmeister/ethmonitor
+        env:
+        - name: NUMBER_OF_CLUSTERS
+          value: "#{nodenumber}"
+        - name: NAME_PREFIX
+          value: "node"
+        - name: WS_SECRET
+          value: "supersecretpassword"
+        - name: WS_SERVER
+          value: "localhost:3001"
+        - name: RPC_PORT_PREFIX
+          value: "85"
+        ports:
+          - containerPort: 3001
+      volumes:
+EOT
+end
+
+# Volumes
+1.upto(nodenumber) do |num|
+  num = format('%02d', num)
+  File.open("deployment.yaml", "a") do |f|
+    f.puts <<EOT
+      - name: geth-node#{num}-persistent-storage
+        hostPath:
+          path: /var/lib/docker/geth-storage/node#{num}
+      - name: geth-node#{num}-config-persistent-storage
+        configMap:
+          name: geth-node#{num}-config
+          items:
+          - key: geth-node#{num}-config
+            path: /etc/testnet/node#{num}/config/gethconfig.toml
+EOT
+  end
+end
