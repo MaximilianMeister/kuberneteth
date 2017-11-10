@@ -1,11 +1,11 @@
 nodes:
-  miner:
-    prefix: miner-node
-    replicas: 2
-    etherbase: 0x023e291a99d21c944a871adcc44561a58f99bdbc
+- name: miner
+  prefix: miner-node
+  etherbase: 0x023e291a99d21c944a871adcc44561a58f99bdbc
 eth:
   networkId: 1101
 discovery: true
 consensus_engine: ethash
 geth:
-  version: 1.6.0
+  # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
+  version: stable

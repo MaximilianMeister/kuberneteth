@@ -4,8 +4,7 @@ require "yaml"
 
 config      = YAML.load_file("kuberneteth.yaml")
 nodes       = config["nodes"]
-nodenumber  = nodes["miner"]["replicas"]
-etherbase   = nodes["miner"]["etherbase"]
+nodenumber  = nodes.length
 
 #
 # Sanity Checks
@@ -13,9 +12,64 @@ etherbase   = nodes["miner"]["etherbase"]
 abort "Number of nodes is limited to 100" if nodenumber > 100
 
 #
+# Config Map
+#
+nodes.each_with_index do |node, index|
+  num = format('%02d', index)
+  node_id = "#{node["prefix"]}-#{node["name"]}-#{num}"
+  File.open("deployment.yaml", "w") do |f|
+    f.puts <<EOT
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gethconfig-#{node_id}
+  namespace: default
+  labels:
+    name: gethconfig-#{node_id}
+data:
+  gethconfig: |-
+    [Eth]
+    NetworkId = #{config["eth"]["networkId"]}
+    SyncMode = "fast"
+    LightPeers = 20
+    DatabaseCache = 128
+    GasPrice = 20000000000
+    EthashCacheDir = "ethash"
+    EthashCachesInMem = 2
+    EthashCachesOnDisk = 3
+    EthashDatasetDir = "/etc/testnet/#{node_id}/.ethash"
+    EthashDatasetsInMem = 1
+    EthashDatasetsOnDisk = 2
+    EnablePreimageRecording = false
+
+    [Eth.GPO]
+    Blocks = 10
+    Percentile = 50
+
+    [Node]
+    DataDir = "/etc/testnet/#{node_id}/.ethereum"
+    IPCPath = "/etc/testnet/#{node_id}/geth.ipc"
+    HTTPPort = 85#{num}
+    HTTPModules = ["net", "web3", "eth"]
+    WSPort = 86#{num}
+    WSModules = ["net", "web3", "eth"]
+
+    [Node.P2P]
+    MaxPeers = 25
+    NoDiscovery = false
+    BootstrapNodes = []
+    StaticNodes = []
+    TrustedNodes = []
+    ListenAddr = ":303#{num}"
+EOT
+  end
+end
+
+#
 # Service
 #
-File.open("deployment.yaml", "w") do |f|
+File.open("deployment.yaml", "a") do |f|
   f.puts <<EOT
 ---
 apiVersion: v1
@@ -24,17 +78,18 @@ metadata:
   name: geth-node-svc
 spec:
   selector:
-    app: geth-node
+    app: kuberneteth
   type: NodePort
   ports:
 EOT
 end
 
-1.upto(nodenumber) do |num|
-  num = format('%02d', num)
+nodes.each_with_index do |node, index|
+  num = format('%02d', index)
+  node_id = "#{node["prefix"]}-#{node["name"]}-#{num}"
   File.open("deployment.yaml", "a") do |f|
     f.puts <<EOT
-    - name: node#{num}-jsonrpc
+    - name: #{node_id}-jsonrpc
       protocol: TCP
       port: 85#{num}
       targetPort: 85#{num}
@@ -54,7 +109,7 @@ kind: Pod
 metadata:
   name: geth-genesis-node-pod
   labels:
-    app: geth-node
+    app: kuberneteth
 spec:
   containers:
   - name: geth-genesis-node-container
@@ -62,59 +117,6 @@ spec:
   restartPolicy: Never
 EOT
 end
-
-#
-# Config Map
-#
-1.upto(nodenumber) do |num|
-  num = format('%02d', num)
-  File.open("deployment.yaml", "a") do |f|
-    f.puts <<EOT
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: gethconfig-node#{num}
-  namespace: default
-data:
-  gethconfig: |
-    [Eth]
-    NetworkId = #{config["eth"]["networkId"]}
-    SyncMode = "fast"
-    LightPeers = 20
-    DatabaseCache = 128
-    GasPrice = 20000000000
-    EthashCacheDir = "ethash"
-    EthashCachesInMem = 2
-    EthashCachesOnDisk = 3
-    EthashDatasetDir = "/etc/testnet/node#{num}/.ethash"
-    EthashDatasetsInMem = 1
-    EthashDatasetsOnDisk = 2
-    EnablePreimageRecording = false
-
-    [Eth.GPO]
-    Blocks = 10
-    Percentile = 50
-
-    [Node]
-    DataDir = "/etc/testnet/node#{num}/.ethereum"
-    IPCPath = "/etc/testnet/node#{num}/geth.ipc"
-    HTTPPort = 85#{num}
-    HTTPModules = ["net", "web3", "eth"]
-    WSPort = 86#{num}
-    WSModules = ["net", "web3", "eth"]
-
-    [Node.P2P]
-    MaxPeers = 25
-    NoDiscovery = false
-    BootstrapNodes = []
-    StaticNodes = []
-    TrustedNodes = []
-    ListenAddr = ":303#{num}"
-EOT
-  end
-end
-
 
 #
 # Cluster Deployment
@@ -132,34 +134,30 @@ spec:
   replicas: 1
   template:
     metadata:
-      name: geth-node-pod
+      name: geth-node-deployment
       labels:
-        app: geth-node
+        app: kuberneteth
     spec:
       containers:
 EOT
 end
 
-# Geth
-1.upto(nodenumber) do |num|
-  num = format('%02d', num)
+nodes.each_with_index do |node, index|
+  num = format('%02d', index)
+  node_id = "#{node["prefix"]}-#{node["name"]}-#{num}"
   File.open("deployment.yaml", "a") do |f|
     f.puts <<EOT
-      - name: geth-node#{num}-container
-        image: ethereum/client-go:v#{config["geth"]["version"]}
-        command: [ "/bin/sh", "-c" ]
-        args: [ "/geth", "--config", "/etc/testnet/node#{num}/config/gethconfig.toml" ]
-          volumeMounts:
-          - name: config-volume
-            mountPath: /etc/testnet
+      - name: #{node_id}-container
+        image: ethereum/client-go:#{config["geth"]["version"]}
+        args: [ "--config", "/etc/geth/#{node_id}/gethconfig.toml" ]
         ports:
           - containerPort: 85#{num}
           - containerPort: 303#{num}
         volumeMounts:
-        - name: geth-node#{num}-persistent-storage
-          mountPath: /etc/testnet/node#{num}
-        - name: geth-node#{num}-config-persistent-storage
-          mountPath: /etc/testnet/node#{num}/config
+        - name: #{node_id}-persistent-storage
+          mountPath: /etc/testnet/#{node_id}
+        - name: #{node_id}-config-persistent-storage
+          mountPath: /etc/geth/#{node_id}
 EOT
   end
 end
@@ -187,19 +185,20 @@ EOT
 end
 
 # Volumes
-1.upto(nodenumber) do |num|
-  num = format('%02d', num)
+nodes.each_with_index do |node, index|
+  num = format('%02d', index)
+  node_id = "#{node["prefix"]}-#{node["name"]}-#{num}"
   File.open("deployment.yaml", "a") do |f|
     f.puts <<EOT
-      - name: geth-node#{num}-persistent-storage
+      - name: #{node_id}-persistent-storage
         hostPath:
-          path: /var/lib/docker/geth-storage/node#{num}
-      - name: geth-node#{num}-config-persistent-storage
+          path: /var/lib/docker/geth-storage/#{node_id}
+      - name: #{node_id}-config-persistent-storage
         configMap:
-          name: geth-node#{num}-config
+          name: gethconfig-#{node_id}
           items:
-          - key: geth-node#{num}-config
-            path: /etc/testnet/node#{num}/config/gethconfig.toml
+          - key: gethconfig
+            path: gethconfig.toml
 EOT
   end
 end
