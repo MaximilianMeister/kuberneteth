@@ -1,0 +1,59 @@
+[Eth]
+NetworkId = <%= @Eth_NetworkId %>
+SyncMode = "fast"
+LightPeers = 20
+DatabaseCache = 128
+<%- if @Eth_Etherbase && @Eth_MinerThreads -%>
+Etherbase = "<%= @Eth_Etherbase %>"
+MinerThreads = <%= @Eth_MinerThreads %>
+<% end -%>
+GasPrice = 18000000000
+EthashCacheDir = "ethash"
+EthashCachesInMem = 2
+EthashCachesOnDisk = 3
+EthashDatasetDir = "/root/.ethash"
+EthashDatasetsInMem = 1
+EthashDatasetsOnDisk = 2
+EnablePreimageRecording = false
+
+[Eth.TxPool]
+NoLocals = false
+Journal = "transactions.rlp"
+Rejournal = 3600000000000
+PriceLimit = 1
+PriceBump = 10
+AccountSlots = 16
+GlobalSlots = 4096
+AccountQueue = 64
+GlobalQueue = 1024
+Lifetime = 10800000000000
+
+[Eth.GPO]
+Blocks = 10
+Percentile = 50
+
+[Shh]
+MaxMessageSize = 1048576
+MinimumAcceptedPOW = 2e-01
+
+[Node]
+UserIdent = "<%= @Node_UserIdent %>"
+DataDir = "<%= @Node_DataDir %>"
+IPCPath = "<%= @Node_DataDir %>/geth.ipc"
+HTTPHost = "127.0.0.1"
+HTTPPort = <%= @Node_HTTPPort %>
+HTTPCors = ["*"]
+HTTPModules = ["db", "eth", "net", "web3", "personal", "web3"]
+WSPort = <%= @Node_WSPort %>
+WSModules = ["net", "web3", "eth", "shh"]
+
+[Node.P2P]
+MaxPeers = 25
+NoDiscovery = false
+DiscoveryV5Addr = ":<%= @NodeP2P_ListenAddr %>"
+BootstrapNodes = []
+BootstrapNodesV5 = []
+StaticNodes = []
+TrustedNodes = []
+ListenAddr = ":<%= @NodeP2P_ListenAddr %>"
+EnableMsgEvents = false

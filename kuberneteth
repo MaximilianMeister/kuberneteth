@@ -1,68 +1,71 @@
 #!/usr/bin/env ruby
 
 require "yaml"
+require "erb"
 
+# generic variables
 config      = YAML.load_file("kuberneteth.yaml")
 nodes       = config["nodes"]
 nodenumber  = nodes.length
+
 
 #
 # Sanity Checks
 #
 abort "Number of nodes is limited to 100" if nodenumber > 100
 
+#####################
+# Create config files for each node
+#####################
+
+def set_template_vars(values)
+  @Eth_NetworkId      = values["geth"]["Eth_NetworkId"]
+  @Eth_Etherbase      = values["geth"]["Eth_Etherbase"]
+  @Eth_MinerThreads   = values["geth"]["Eth_MinerThreads"]
+  @Node_UserIdent     = values["geth"]["Node_UserIdent"]
+  @Node_DataDir       = values["geth"]["Node_DataDir"]
+  @Node_HTTPPort      = values["geth"]["Node_HTTPPort"]
+  @Node_WSPort        = values["geth"]["Node_WSPort"]
+  @NodeP2P_ListenAddr = values["geth"]["NodeP2P_ListenAddr"]
+  @nodePort           = values["k8s"]["nodePort"]
+end
+
+nodes.each do |node|
+  set_template_vars(node.values.first)
+
+  File.open("#{@Node_UserIdent}.toml", "w") do |f|
+    f.puts (ERB.new(File.read("node.toml.erb"), nil, "-").result)
+  end
+end
+
+#####################
+# deployment
+#####################
+File.open("deployment.yaml", "w") {}
+
 #
 # Config Map
 #
-nodes.each_with_index do |node, index|
-  num = format('%02d', index)
-  node_id = "#{node["prefix"]}-#{node["name"]}-#{num}"
-  File.open("deployment.yaml", "w") do |f|
+nodes.each do |node|
+  set_template_vars(node.values.first)
+  File.open("deployment.yaml", "a") do |f|
     f.puts <<EOT
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: gethconfig-#{node_id}
+  name: gethconfig-#{@Node_UserIdent}
   namespace: default
   labels:
-    name: gethconfig-#{node_id}
+    name: gethconfig-#{@Node_UserIdent}
 data:
   gethconfig: |-
-    [Eth]
-    NetworkId = #{config["eth"]["networkId"]}
-    SyncMode = "fast"
-    LightPeers = 20
-    DatabaseCache = 128
-    GasPrice = 20000000000
-    EthashCacheDir = "ethash"
-    EthashCachesInMem = 2
-    EthashCachesOnDisk = 3
-    EthashDatasetDir = "/etc/testnet/#{node_id}/.ethash"
-    EthashDatasetsInMem = 1
-    EthashDatasetsOnDisk = 2
-    EnablePreimageRecording = false
-
-    [Eth.GPO]
-    Blocks = 10
-    Percentile = 50
-
-    [Node]
-    DataDir = "/etc/testnet/#{node_id}/.ethereum"
-    IPCPath = "/etc/testnet/#{node_id}/geth.ipc"
-    HTTPPort = 85#{num}
-    HTTPModules = ["net", "web3", "eth"]
-    WSPort = 86#{num}
-    WSModules = ["net", "web3", "eth"]
-
-    [Node.P2P]
-    MaxPeers = 25
-    NoDiscovery = false
-    BootstrapNodes = []
-    StaticNodes = []
-    TrustedNodes = []
-    ListenAddr = ":303#{num}"
 EOT
+  end
+  File.open("deployment.yaml", "a") do |f|
+    File.readlines("#{@Node_UserIdent}.toml").each do |line|
+      f.puts("    " + line)
+    end
   end
 end
 
@@ -84,16 +87,15 @@ spec:
 EOT
 end
 
-nodes.each_with_index do |node, index|
-  num = format('%02d', index)
-  node_id = "#{node["prefix"]}-#{node["name"]}-#{num}"
+nodes.each do |node|
+  set_template_vars(node.values.first)
   File.open("deployment.yaml", "a") do |f|
     f.puts <<EOT
-    - name: #{node_id}-jsonrpc
+    - name: #{@Node_UserIdent}-jsonrpc
       protocol: TCP
-      port: 85#{num}
-      targetPort: 85#{num}
-      nodePort: 300#{num}
+      port: #{@Node_HTTPPort}
+      targetPort: #{@Node_HTTPPort}
+      nodePort: #{@nodePort}
 EOT
   end
 end
@@ -142,22 +144,21 @@ spec:
 EOT
 end
 
-nodes.each_with_index do |node, index|
-  num = format('%02d', index)
-  node_id = "#{node["prefix"]}-#{node["name"]}-#{num}"
+nodes.each do |node|
+  set_template_vars(node.values.first)
   File.open("deployment.yaml", "a") do |f|
     f.puts <<EOT
-      - name: #{node_id}-container
+      - name: #{@Node_UserIdent}-container
         image: ethereum/client-go:#{config["geth"]["version"]}
-        args: [ "--config", "/etc/geth/#{node_id}/gethconfig.toml" ]
+        args: [ "--config", "/etc/geth/#{@Node_UserIdent}/gethconfig.toml" ]
         ports:
-          - containerPort: 85#{num}
-          - containerPort: 303#{num}
+          - containerPort: #{@Node_HTTPPort}
+          - containerPort: #{@NodeP2P_ListenAddr}
         volumeMounts:
-        - name: #{node_id}-persistent-storage
-          mountPath: /etc/testnet/#{node_id}
-        - name: #{node_id}-config-persistent-storage
-          mountPath: /etc/geth/#{node_id}
+        - name: #{@Node_UserIdent}-persistent-storage
+          mountPath: /etc/testnet/#{@Node_UserIdent}
+        - name: #{@Node_UserIdent}-config-persistent-storage
+          mountPath: /etc/geth/#{@Node_UserIdent}
 EOT
   end
 end
@@ -185,17 +186,16 @@ EOT
 end
 
 # Volumes
-nodes.each_with_index do |node, index|
-  num = format('%02d', index)
-  node_id = "#{node["prefix"]}-#{node["name"]}-#{num}"
+nodes.each do |node|
+  set_template_vars(node.values.first)
   File.open("deployment.yaml", "a") do |f|
     f.puts <<EOT
-      - name: #{node_id}-persistent-storage
+      - name: #{@Node_UserIdent}-persistent-storage
         hostPath:
-          path: /var/lib/docker/geth-storage/#{node_id}
-      - name: #{node_id}-config-persistent-storage
+          path: /var/lib/docker/geth-storage/#{@Node_UserIdent}
+      - name: #{@Node_UserIdent}-config-persistent-storage
         configMap:
-          name: gethconfig-#{node_id}
+          name: gethconfig-#{@Node_UserIdent}
           items:
           - key: gethconfig
             path: gethconfig.toml
