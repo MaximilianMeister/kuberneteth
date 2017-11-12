@@ -4,9 +4,9 @@ require "yaml"
 require "erb"
 
 # generic variables
-config      = YAML.load_file("kuberneteth.yaml")
-nodes       = config["nodes"]
-nodenumber  = nodes.length
+@config     = YAML.load_file("kuberneteth.yaml")
+@nodes      = @config["nodes"]
+nodenumber  = @nodes.length
 
 
 #
@@ -28,9 +28,11 @@ def set_template_vars(values)
   @Node_WSPort        = values["geth"]["Node_WSPort"]
   @NodeP2P_ListenAddr = values["geth"]["NodeP2P_ListenAddr"]
   @nodePort           = values["k8s"]["nodePort"]
+  @replicas           = values["k8s"]["replicas"]
+  @monitor_name       = @config["monitor"]["name"]
 end
 
-nodes.each do |node|
+@nodes.each do |node|
   set_template_vars(node.values.first)
 
   File.open("#{@Node_UserIdent}.toml", "w") do |f|
@@ -41,164 +43,7 @@ end
 #####################
 # deployment
 #####################
-File.open("deployment.yaml", "w") {}
-
-#
-# Config Map
-#
-nodes.each do |node|
-  set_template_vars(node.values.first)
-  File.open("deployment.yaml", "a") do |f|
-    f.puts <<EOT
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: gethconfig-#{@Node_UserIdent}
-  namespace: default
-  labels:
-    name: gethconfig-#{@Node_UserIdent}
-data:
-  gethconfig: |-
-EOT
-  end
-  File.open("deployment.yaml", "a") do |f|
-    File.readlines("#{@Node_UserIdent}.toml").each do |line|
-      f.puts("    " + line)
-    end
-  end
+File.open("deployment.yaml", "w") do |f|
+  f.puts (ERB.new(File.read("deployment.yaml.erb"), nil, "-").result)
 end
 
-#
-# Service
-#
-File.open("deployment.yaml", "a") do |f|
-  f.puts <<EOT
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: geth-node-svc
-spec:
-  selector:
-    app: kuberneteth
-  type: NodePort
-  ports:
-EOT
-end
-
-nodes.each do |node|
-  set_template_vars(node.values.first)
-  File.open("deployment.yaml", "a") do |f|
-    f.puts <<EOT
-    - name: #{@Node_UserIdent}-jsonrpc
-      protocol: TCP
-      port: #{@Node_HTTPPort}
-      targetPort: #{@Node_HTTPPort}
-      nodePort: #{@nodePort}
-EOT
-  end
-end
-
-#
-# Genesis Pod
-#
-File.open("deployment.yaml", "a") do |f|
-  f.puts <<EOT
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: geth-genesis-node-pod
-  labels:
-    app: kuberneteth
-spec:
-  containers:
-  - name: geth-genesis-node-container
-    image: mmeister/geth-node:genesis
-  restartPolicy: Never
-EOT
-end
-
-#
-# Cluster Deployment
-#
-File.open("deployment.yaml", "a") do |f|
-  f.puts <<EOT
----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: geth-node-deployment
-spec:
-  strategy:
-    type: Recreate
-  replicas: 1
-  template:
-    metadata:
-      name: geth-node-deployment
-      labels:
-        app: kuberneteth
-    spec:
-      containers:
-EOT
-end
-
-nodes.each do |node|
-  set_template_vars(node.values.first)
-  File.open("deployment.yaml", "a") do |f|
-    f.puts <<EOT
-      - name: #{@Node_UserIdent}-container
-        image: ethereum/client-go:#{config["geth"]["version"]}
-        args: [ "--config", "/etc/geth/#{@Node_UserIdent}/gethconfig.toml" ]
-        ports:
-          - containerPort: #{@Node_HTTPPort}
-          - containerPort: #{@NodeP2P_ListenAddr}
-        volumeMounts:
-        - name: #{@Node_UserIdent}-persistent-storage
-          mountPath: /etc/testnet/#{@Node_UserIdent}
-        - name: #{@Node_UserIdent}-config-persistent-storage
-          mountPath: /etc/geth/#{@Node_UserIdent}
-EOT
-  end
-end
-
-# Monitoring
-File.open("deployment.yaml", "a") do |f|
-  f.puts <<EOT
-      - name: ethmonitor
-        image: mmeister/ethmonitor
-        env:
-        - name: NUMBER_OF_CLUSTERS
-          value: "#{nodenumber}"
-        - name: NAME_PREFIX
-          value: "node"
-        - name: WS_SECRET
-          value: "supersecretpassword"
-        - name: WS_SERVER
-          value: "localhost:3001"
-        - name: RPC_PORT_PREFIX
-          value: "85"
-        ports:
-          - containerPort: 3001
-      volumes:
-EOT
-end
-
-# Volumes
-nodes.each do |node|
-  set_template_vars(node.values.first)
-  File.open("deployment.yaml", "a") do |f|
-    f.puts <<EOT
-      - name: #{@Node_UserIdent}-persistent-storage
-        hostPath:
-          path: /var/lib/docker/geth-storage/#{@Node_UserIdent}
-      - name: #{@Node_UserIdent}-config-persistent-storage
-        configMap:
-          name: gethconfig-#{@Node_UserIdent}
-          items:
-          - key: gethconfig
-            path: gethconfig.toml
-EOT
-  end
-end
