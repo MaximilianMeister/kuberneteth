@@ -11,6 +11,8 @@ def set_template_vars(values)
   @nodePort           = values["k8s"]["nodePort"]
   @replicas           = values["k8s"]["replicas"]
   @monitor_name       = @config["monitor"]["name"]
+  @bootnode_httpport  = @config["bootnode"]["geth"]["Node_HTTPPort"]
+  @bootnode_wsport    = @config["bootnode"]["geth"]["Node_WSPort"]
   return
 end
 -%>
@@ -63,6 +65,34 @@ spec:
     image: mmeister/geth-node:genesis
   restartPolicy: Never
 
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: geth-boot-node-pod
+  labels:
+    app: kuberneteth
+spec:
+  containers:
+  - name: geth-boot-node-container
+    image: mmeister/geth-node:boot
+    ports:
+      - containerPort: <%= @bootnode_httpport %>
+      - containerPort: <%= @bootnode_wsport %>
+    volumeMounts:
+    - name: geth-boot-node-persistent-storage
+      mountPath: /etc/testnet/bootnode
+    env:
+    - name: BOOTNODE_POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+  volumes:
+  - name: geth-boot-node-persistent-storage
+    hostPath:
+      path: /var/lib/docker/geth-storage/bootnode
+  restartPolicy: Never
+
 <%- @nodes.each do |node| -%>
 <%= set_template_vars(node.values.first) -%>
 ---
@@ -102,8 +132,7 @@ spec:
           items:
           - key: gethconfig
             path: gethconfig.toml
-
-<% end %>
+<% end -%>
 
 ---
 apiVersion: extensions/v1beta1

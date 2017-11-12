@@ -30,6 +30,8 @@ def set_template_vars(values)
   @nodePort           = values["k8s"]["nodePort"]
   @replicas           = values["k8s"]["replicas"]
   @monitor_name       = @config["monitor"]["name"]
+  @bootnode_httpport  = @config["bootnode"]["geth"]["Node_HTTPPort"]
+  @bootnode_wsport    = @config["bootnode"]["geth"]["Node_WSPort"]
 end
 
 @nodes.each do |node|

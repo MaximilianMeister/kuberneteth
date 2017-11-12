@@ -23,9 +23,12 @@ nodes:
       Node_HTTPPort: 8041
       Node_WSPort: 8541
       NodeP2P_ListenAddr: 30301
+bootnode:
+  geth:
+    Node_HTTPPort: 8039
+    Node_WSPort: 8539
 monitor:
   name: kuberneteth-monitor
-discovery: true
 consensus_engine: ethash
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
