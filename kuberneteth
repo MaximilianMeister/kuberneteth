@@ -31,7 +31,7 @@ def set_template_vars(values)
   @replicas           = values["k8s"]["replicas"]
   @monitor_name       = @config["monitor"]["name"]
   @bootnode_httpport  = @config["bootnode"]["geth"]["Node_HTTPPort"]
-  @bootnode_wsport    = @config["bootnode"]["geth"]["Node_WSPort"]
+  @bootnode_listen    = @config["bootnode"]["geth"]["NodeP2P_ListenAddr"]
 end
 
 @nodes.each do |node|

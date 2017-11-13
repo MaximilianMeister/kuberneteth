@@ -1,7 +1,11 @@
+bootnode:
+  geth:
+    Node_HTTPPort: 8041
+    NodeP2P_ListenAddr: 30301
 nodes:
 - miner00:
     k8s:
-      nodePort: 30000
+      nodePort: 30002
       replicas: 1
     geth:
       Eth_NetworkId: 1101
@@ -9,24 +13,20 @@ nodes:
       Eth_MinerThreads: 1
       Node_UserIdent: miner00
       Node_DataDir: /etc/testnet/miner00
-      Node_HTTPPort: 8040
-      Node_WSPort: 8540
-      NodeP2P_ListenAddr: 30300
+      Node_HTTPPort: 8042
+      Node_WSPort: 8542
+      NodeP2P_ListenAddr: 30302
 - member01:
     k8s:
-      nodePort: 30001
+      nodePort: 30003
       replicas: 1
     geth:
       Eth_NetworkId: 1101
       Node_UserIdent: member01
       Node_DataDir: /etc/testnet/member01
-      Node_HTTPPort: 8041
-      Node_WSPort: 8541
-      NodeP2P_ListenAddr: 30301
-bootnode:
-  geth:
-    Node_HTTPPort: 8039
-    Node_WSPort: 8539
+      Node_HTTPPort: 8043
+      Node_WSPort: 8543
+      NodeP2P_ListenAddr: 30303
 monitor:
   name: kuberneteth-monitor
 consensus_engine: ethash

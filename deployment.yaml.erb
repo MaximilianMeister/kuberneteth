@@ -12,7 +12,7 @@ def set_template_vars(values)
   @replicas           = values["k8s"]["replicas"]
   @monitor_name       = @config["monitor"]["name"]
   @bootnode_httpport  = @config["bootnode"]["geth"]["Node_HTTPPort"]
-  @bootnode_wsport    = @config["bootnode"]["geth"]["Node_WSPort"]
+  @bootnode_listen    = @config["bootnode"]["geth"]["NodeP2P_ListenAddr"]
   return
 end
 -%>
@@ -78,7 +78,7 @@ spec:
     image: mmeister/geth-node:boot
     ports:
       - containerPort: <%= @bootnode_httpport %>
-      - containerPort: <%= @bootnode_wsport %>
+      - containerPort: <%= @bootnode_listen %>
     volumeMounts:
     - name: geth-boot-node-persistent-storage
       mountPath: /etc/testnet/bootnode
@@ -110,6 +110,18 @@ spec:
       labels:
         app: kuberneteth
     spec:
+      initContainers:
+      - name: <%= @Node_UserIdent %>-init-container
+        image: ethereum/client-go:stable
+        command: [ "sh", "-c", "ENODE=$(cat /etc/testnet/bootnode/enode.address);
+                                ENODE_ESC=$(echo $ENODE | sed -e 's/\\/\\\\/g');
+                                echo $ENODE_ESC;
+                                sed -i -- 's/BootstrapNodes = []/BootstrapNodes = [\"$ENODE_ESC\"]/' /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;" ]
+        volumeMounts:
+        - name: <%= @Node_UserIdent %>-config-persistent-storage
+          mountPath: /etc/geth/<%= @Node_UserIdent %>
+        - name: geth-boot-node-persistent-storage
+          mountPath: /etc/testnet/bootnode
       containers:
       - name: <%= @Node_UserIdent %>-container
         image: ethereum/client-go:stable
@@ -123,6 +135,9 @@ spec:
         - name: <%= @Node_UserIdent %>-config-persistent-storage
           mountPath: /etc/geth/<%= @Node_UserIdent %>
       volumes:
+      - name: geth-boot-node-persistent-storage
+        hostPath:
+          path: /var/lib/docker/geth-storage/bootnode
       - name: <%= @Node_UserIdent %>-persistent-storage
         hostPath:
           path: /var/lib/docker/geth-storage/<%= @Node_UserIdent %>
