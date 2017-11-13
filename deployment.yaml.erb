@@ -113,10 +113,12 @@ spec:
       initContainers:
       - name: <%= @Node_UserIdent %>-init-container
         image: ethereum/client-go:stable
-        command: [ "sh", "-c", "ENODE=$(cat /etc/testnet/bootnode/enode.address);
-                                ENODE_ESC=$(echo $ENODE | sed -e 's/\\/\\\\/g');
-                                echo $ENODE_ESC;
-                                sed -i -- 's/BootstrapNodes = []/BootstrapNodes = [\"$ENODE_ESC\"]/' /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;" ]
+        command: [ "sh" ]
+        args:
+        - "-cx"
+        - "ENODE=$(cat /etc/testnet/bootnode/enode.address);
+           ENODE_ESC=$(echo $ENODE | sed 's@//@\\\\/\\\\/@g');
+           sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;"
         volumeMounts:
         - name: <%= @Node_UserIdent %>-config-persistent-storage
           mountPath: /etc/geth/<%= @Node_UserIdent %>
