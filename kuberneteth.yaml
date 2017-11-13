@@ -1,11 +1,12 @@
 bootnode:
   geth:
-    Node_HTTPPort: 8041
-    NodeP2P_ListenAddr: 30301
+    Node_HTTPPort: 8500
+    NodeP2P_ListenAddr: 30300
 nodes:
 - miner00:
     k8s:
-      nodePort: 30002
+      nodePort_rpc: 30001
+      nodePort_ipc: 30002
       replicas: 1
     geth:
       Eth_NetworkId: 1101
@@ -13,22 +14,23 @@ nodes:
       Eth_MinerThreads: 1
       Node_UserIdent: miner00
       Node_DataDir: /etc/testnet/miner00
-      Node_HTTPPort: 8042
-      Node_WSPort: 8542
-      NodeP2P_ListenAddr: 30302
+      Node_HTTPPort: 8501
+      Node_WSPort: 8541
+      NodeP2P_ListenAddr: 30301
 - member01:
     k8s:
-      nodePort: 30003
+      nodePort_rpc: 30003
+      nodePort_ipc: 30004
       replicas: 1
     geth:
       Eth_NetworkId: 1101
       Node_UserIdent: member01
       Node_DataDir: /etc/testnet/member01
-      Node_HTTPPort: 8043
-      Node_WSPort: 8543
-      NodeP2P_ListenAddr: 30303
+      Node_HTTPPort: 8502
+      Node_WSPort: 8542
+      NodeP2P_ListenAddr: 30302
 monitor:
-  name: kuberneteth-monitor
+  name: monitor
 consensus_engine: ethash
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
