@@ -221,10 +221,17 @@ spec:
         command: [ "sh" ]
         args:
         - "-cx"
-        - "sed -i \"s/rpchost/$GETH_NODE_SVC_SERVICE_HOST/g\" /eth-net-intelligence-api/app.json"
+        - "cp -r /eth-net-intelligence-api/* /ethmonitor;
+           cp /monitor-configmap/app.json /ethmonitor/app.json;
+           sed -i \"s/rpchost/$GETH_NODE_SVC_SERVICE_HOST/g\" /ethmonitor/app.json;
+           ls -la /ethmonitor; cat /ethmonitor/app.json;"
         volumeMounts:
+        - name: monitor-configmap-volume
+          mountPath: /monitor-configmap/app.json
+          subPath: app.json
+          # we need to mount an extra volume to be able to change a value in the configmap
         - name: monitor-config-persistent-storage
-          mountPath: /eth-net-intelligence-api
+          mountPath: /ethmonitor
       containers:
       - name: <%= @monitor_name %>-container
         image: mmeister/ethmonitor:k8s
@@ -234,9 +241,12 @@ spec:
         - name: monitor-config-persistent-storage
           mountPath: /eth-net-intelligence-api
       volumes:
-      - name: monitor-config-persistent-storage
+      - name: monitor-configmap-volume
         configMap:
           name: monitor-config
           items:
           - key: app.json
             path: app.json
+      - name: monitor-config-persistent-storage
+        hostPath:
+          path: /var/lib/docker/ethmonitor
