@@ -178,7 +178,11 @@ spec:
       containers:
       - name: <%= @Node_UserIdent %>-container
         image: ethereum/client-go:stable
+<%- if @Eth_Etherbase && @Eth_MinerThreads -%>
+        args: [ "--mine", "--config", "/etc/geth/<%= @Node_UserIdent %>/gethconfig.toml" ]
+<% else -%>
         args: [ "--config", "/etc/geth/<%= @Node_UserIdent %>/gethconfig.toml" ]
+<% end -%>
         ports:
           - containerPort: <%= @Node_HTTPPort %>
           - containerPort: <%= @NodeP2P_ListenAddr %>
