@@ -1,7 +1,7 @@
 bootnode:
   geth:
-    Node_HTTPPort: 8500
-    NodeP2P_ListenAddr: 30300
+    Node_HTTPPort: 8545
+    NodeP2P_ListenAddr: 30303
 nodes:
 - miner00:
     k8s:
@@ -14,9 +14,9 @@ nodes:
       Eth_MinerThreads: 1
       Node_UserIdent: miner00
       Node_DataDir: /etc/testnet/miner00
-      Node_HTTPPort: 8501
+      Node_HTTPPort: 8545
       Node_WSPort: 8541
-      NodeP2P_ListenAddr: 30301
+      NodeP2P_ListenAddr: 30303
 - member01:
     k8s:
       nodePort_rpc: 30003
@@ -26,9 +26,9 @@ nodes:
       Eth_NetworkId: 1101
       Node_UserIdent: member01
       Node_DataDir: /etc/testnet/member01
-      Node_HTTPPort: 8502
-      Node_WSPort: 8542
-      NodeP2P_ListenAddr: 30302
+      Node_HTTPPort: 8545
+      Node_WSPort: 8541
+      NodeP2P_ListenAddr: 30303
 monitor:
   name: monitor
 consensus_engine: ethash
