@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+
+require "yaml"
+require "erb"
+
+# generic variables
+@config     = YAML.load_file("kuberneteth.yaml")
+@nodes      = @config["nodes"]
+nodenumber  = @nodes.length
+
+
+#
+# Sanity Checks
+#
+abort "Number of nodes is limited to 100" if nodenumber > 100
+
+#####################
+# Create config files for each node
+#####################
+
+def set_template_vars(values)
+  @Eth_Etherbase      = values["geth"]["Eth_Etherbase"]
+  @Eth_MinerThreads   = values["geth"]["Eth_MinerThreads"]
+  @Node_UserIdent     = values["geth"]["Node_UserIdent"]
+  @Node_DataDir       = values["geth"]["Node_DataDir"]
+  @Node_HTTPPort      = values["geth"]["Node_HTTPPort"]
+  @Node_WSPort        = values["geth"]["Node_WSPort"]
+  @NodeP2P_ListenAddr = values["geth"]["NodeP2P_ListenAddr"]
+  @nodePort_rpc       = values["k8s"]["nodePort_rpc"]
+  @nodePort_ipc       = values["k8s"]["nodePort_ipc"]
+  @replicas           = values["k8s"]["replicas"]
+  @networkId          = @config["geth"]["networkId"] rescue 1101
+  @monitor_name       = @config["monitor"]["name"] rescue "monitor"
+  @monitor_nodePort   = @config["monitor"]["k8s"]["nodePort"] rescue nil
+  @bootnode_httpport  = @config["bootnode"]["geth"]["Node_HTTPPort"] rescue 8545
+  @bootnode_listen    = @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] rescue 30303
+end
+
+@nodes.each do |node|
+  set_template_vars(node.values.first)
+
+  File.open("#{@Node_UserIdent}.toml", "w") do |f|
+    f.puts (ERB.new(File.read("node.toml.erb"), nil, "-").result)
+  end
+end
+
+#####################
+# deployment
+#####################
+File.open("deployment.yaml", "w") do |f|
+  f.puts (ERB.new(File.read("deployment.yaml.erb"), nil, "-").result)
+end
+
