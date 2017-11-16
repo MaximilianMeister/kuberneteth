@@ -1,72 +1,101 @@
-# kubernet-eth
+# kuberneteth
 deploy a private [ethereum](https://ethereum.org/) blockchain network with kubernetes
 
 ## infrastructure
-the manifests in the [blockchain-manifests](blockchain-manifests/) folder are tested on [CASP 1.0](https://www.suse.com/communities/blog/suse-container-service-caas-platform-1-0-beta-program/) and [openSUSE Leap 42.2](https://opensuse.org/) but should work on any platform where kubernetes is up and running.
+the manifest produced by [kuberneteth](./kuberneteth) should work on any platform where kubernetes is up and running.
 
-Make sure to have kubernetes up and running, either via the [official documentation](https://kubernetes.io/docs/setup/pick-right-solution/) or if you want to have a quick docker and libvirt setup, follow the guide to setup
-
-* [velum](https://github.com/kubic-project/velum) - a dashboard to deploy and configure kubernetes clusters via docker containers
-* [kubernetes worker nodes](https://github.com/kubic-project/terraform/tree/master/contrib/libvirt) - an easy way to spawn x worker nodes via teraform and openSUSE
+Make sure to have kubernetes up and running, either via the [official documentation](https://kubernetes.io/docs/setup/pick-right-solution/)
 
 ## configuration
 the deployment can be configured on a high level via a yaml file [kuberneteth.yaml](kuberneteth.yaml)
 
 options are:
-`nodes.miner.replicas`: number of miner nodes, where each miner node gets an individual name and rpc port assigned
-`nodes.member.replicas`: number of miner nodes, where each member node gets an individual name and rpc port assigned
-`discovery`: when discovery is set to true, a bootnode will be launched to connect the other nodes
-`consensus_engine`: can be ethash or clique (see https://godoc.org/github.com/ethereum/go-ethereum/consensus#Engine)
+```yaml
+# configuration for the bootnode that makes the cluster nodes aware of each other
+bootnode:
+  # assign an rpc/ipc port
+  geth:
+    Node_HTTPPort: 8545
+    NodeP2P_ListenAddr: 30303
+# here you can add as many nodes as you like, name and configure them
+nodes:
+- miner:
+    # this config values will end up in the k8s manifest directly
+    k8s:
+      nodePort_rpc: 30001
+      nodePort_ipc: 30002
+      replicas: 1
+    # this config values will alter the geth config toml file which will end up as a ConfigMap in the k8s manifest
+    geth:
+      Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
+      Eth_MinerThreads: 1
+      Node_UserIdent: miner
+      Node_DataDir: /etc/testnet/miner
+      Node_HTTPPort: 8545
+      Node_WSPort: 8546
+      NodeP2P_ListenAddr: 30303
+# keep adding nodes
+# - member:
+# ...
+monitor:
+  name: monitor
+  k8s:
+    nodePort: 30005
+# generic geth related options
+geth:
+  # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
+  version: stable
+  networkId: 1101
+```
 
 ## deployment and cluster setup
-the deployment of the ethereum network nodes happens via the [blockchain-manifests](blockchain-manifests/) that are created when calling the `kuberneteh` binary
+the deployment of the ethereum network nodes happens via the `deployment.yaml` file that is created when calling the [kuberneteth](./kuberneteth) script
 
-the [kuberneteth](kuberneteth) binary can be used to deploy a [geth](https://github.com/ethereum/go-ethereum) cluster consisting of:
+the deployment will set up a [geth](https://github.com/ethereum/go-ethereum) cluster consisting of:
 
 * a [bootnode](https://github.com/ethereum/go-ethereum/wiki/Setting-up-private-network-or-local-cluster#setup-bootnode)
-* genesis node (that writes the genesis block initially) - runs as a miner
-* miner node(s)
-* member node(s)
-* a monitor to watch the status of the cluster (via [ethereum-netstats](https://github.com/cubedro/eth-netstats) and [eth-net-intelligence-api](https://github.com/cubedro/eth-net-intelligence-api)
+* genesis node (that writes the genesis block initially) - and starts to run normally afterwards
+* miner node(s) (depending on the configuration in [kuberneteth.yaml](./kuberneteth.yaml))
+* member node(s) (depending on the configuration in [kuberneteth.yaml](./kuberneteth.yaml))
+* a monitor to watch the status of the cluster (via [ethereum-netstats](https://github.com/cubedro/eth-netstats) and [eth-net-intelligence-api](https://github.com/cubedro/eth-net-intelligence-api))
 
 ## limitations
 * persistent storage of blocks and any data that is usually in the `datadir` (like `.ethereum`) is done via [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) -> make sure to keep it clean, as it is not managed
-* the cluster runs in a single pod
 * depending on the workers (cpu) the mining time may vary
-* the mining difficulty is hardcoded, to avoid using the `--dev` flag of `geth` that uses too many unwanted/uncontrolled default values. the [mmeister/geth-node:genesis-miner-dev](dockerfiles/Dockerfile.genesis-miner-dev) image on dockerhub contains a [patch](https://github.com/MaximilianMeister/kubernet-eth/blob/master/dockerfiles/Dockerfile.genesis-miner-dev#L8) to defuse the "difficulty bomb"
 
 ## workflow
 once the kubernetes cluster is up and healthy (verify via `kubectl cluster-info`), you can deploy the geth cluster via the following sequence:
 
 ```bash
-./kuberneteth deploy
+./kuberneteth # this will create a file called 'deployment.yaml'
+kubectl apply -f deployment.yaml # this will deploy the cluster to kubernetes
 ```
 
 there are some services that are using specific ports to interact with the pods, which you can port forward to access them from your local machine.
 services are:
 
-* (json)rpc/ipc for each node, to connect e.g. [mist](https://github.com/ethereum/mist) a useful application to send transactions deploy smart contracts, and interact with the network -> runs at [http://localhost:9876](http://localhost:9876)
-* the `eth-netstats` dashboard -> visit [http://localhost:4567](http://localhost:4567)
+* (json)rpc/ipc for each node, to connect e.g. [mist](https://github.com/ethereum/mist) a useful application to send transactions deploy smart contracts, and interact with the network -> runs at [http://localhost:8545](http://localhost:8545)
+* the `eth-netstats` dashboard -> visit [http://localhost:3001](http://localhost:3001)
 
 ```bash
 # the monitoring dashboard
-./scripts/forward-monitoring.sh
+kubectl port-forward $(kubectl get pod | grep monitor | awk '{print $1}') 3001:3001
 # connecting a wallet or any service that talks to the json rpc
-./scripts/forward-wallet.sh
+kubectl port-forward $(kubectl get pod | grep [SOME_NODE_POD_NAME] | awk '{print $1}') 8545:8545
 ```
 
 ## using mist wallet
 if you're using mist to interact with the network, make sure to connect it to the network via:
 
 ```bash
-./ethereumwallet --rpc http://localhost:8765 --node geth --network test
+./ethereumwallet --rpc http://localhost:8545 --node geth --network test
 ```
 
 ## tear down the cluster
 to clean up and start from scratch:
 
 ```bash
-./kuberneteth teardown
+kubectl delete -f deployment.yaml
 ```
 
 make sure to clean up the `hostPath` manually, I usually wipe all folders, but the `keystore` from the miner node to keep the `coinbase` in place
