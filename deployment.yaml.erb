@@ -137,7 +137,7 @@ spec:
       port: <%= @Node_WSPort %>
       targetPort: <%= @Node_WSPort %>
     - name: <%= @Node_UserIdent %>-ipc
-      protocol: TCP
+      protocol: UDP
       port: <%= @NodeP2P_ListenAddr %>
       targetPort: <%= @NodeP2P_ListenAddr %>
 <%- if @nodePort_ipc -%>
@@ -231,6 +231,7 @@ spec:
           - containerPort: <%= @Node_HTTPPort %>
           - containerPort: <%= @Node_WSPort %>
           - containerPort: <%= @NodeP2P_ListenAddr %>
+            protocol: UDP
         volumeMounts:
         - name: <%= @Node_UserIdent %>-persistent-storage
           mountPath: /etc/testnet/<%= @Node_UserIdent %>
