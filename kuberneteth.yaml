@@ -3,35 +3,36 @@ bootnode:
     Node_HTTPPort: 8545
     NodeP2P_ListenAddr: 30303
 nodes:
-- miner00:
+- miner:
     k8s:
       nodePort_rpc: 30001
       nodePort_ipc: 30002
       replicas: 1
     geth:
-      Eth_NetworkId: 1101
       Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
       Eth_MinerThreads: 1
-      Node_UserIdent: miner00
-      Node_DataDir: /etc/testnet/miner00
+      Node_UserIdent: miner
+      Node_DataDir: /etc/testnet/miner
       Node_HTTPPort: 8545
-      Node_WSPort: 8541
+      Node_WSPort: 8546
       NodeP2P_ListenAddr: 30303
-- member01:
+- member:
     k8s:
       nodePort_rpc: 30003
       nodePort_ipc: 30004
       replicas: 1
     geth:
-      Eth_NetworkId: 1101
-      Node_UserIdent: member01
-      Node_DataDir: /etc/testnet/member01
+      Node_UserIdent: member
+      Node_DataDir: /etc/testnet/member
       Node_HTTPPort: 8545
-      Node_WSPort: 8541
+      Node_WSPort: 8546
       NodeP2P_ListenAddr: 30303
 monitor:
   name: monitor
+  k8s:
+    nodePort: 30005
 consensus_engine: ethash
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
   version: stable
+  networkId: 1101

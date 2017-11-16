@@ -1,5 +1,5 @@
 [Eth]
-NetworkId = <%= @Eth_NetworkId %>
+NetworkId = <%= @networkId %>
 SyncMode = "fast"
 LightPeers = 20
 DatabaseCache = 128
@@ -40,10 +40,11 @@ MinimumAcceptedPOW = 2e-01
 UserIdent = "<%= @Node_UserIdent %>"
 DataDir = "<%= @Node_DataDir %>"
 IPCPath = "<%= @Node_DataDir %>/geth.ipc"
-HTTPHost = "127.0.0.1"
+HTTPHost = "0.0.0.0"
 HTTPPort = <%= @Node_HTTPPort %>
 HTTPCors = ["*"]
 HTTPModules = ["db", "eth", "net", "web3", "personal", "web3"]
+WSHost = "0.0.0.0"
 WSPort = <%= @Node_WSPort %>
 WSModules = ["net", "web3", "eth", "shh"]
 
