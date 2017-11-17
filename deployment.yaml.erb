@@ -159,14 +159,21 @@ spec:
     ports:
       - containerPort: <%= @bootnode_httpport %>
       - containerPort: <%= @bootnode_listen %>
-    volumeMounts:
-    - name: geth-boot-node-persistent-storage
-      mountPath: /etc/testnet/bootnode
     env:
     - name: BOOTNODE_POD_IP
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
+    command: [ "sh" ]
+    args:
+    - "-cx"
+    - "cd /etc/testnet/bootnode;
+       /bootnode -genkey boot.key -writeaddress;
+       echo \"enode://$(/bootnode -nodekey boot.key -writeaddress)@$BOOTNODE_POD_IP:30303\" > enode.address;
+       /bootnode -nodekey boot.key;"
+    volumeMounts:
+    - name: geth-boot-node-persistent-storage
+      mountPath: /etc/testnet/bootnode
   volumes:
   - name: geth-boot-node-persistent-storage
     hostPath:
