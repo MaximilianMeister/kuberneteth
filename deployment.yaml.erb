@@ -291,6 +291,9 @@ spec:
           items:
           - key: app.json
             path: app.json
+      - name: monitor-config-persistent-storage
+        hostPath:
+          path: /var/lib/docker/ethmonitor
 <% end -%>
 
 ---
