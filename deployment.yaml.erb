@@ -114,6 +114,7 @@ metadata:
   labels:
     app: kuberneteth
     tier: backend
+    name: <%= @Node_UserIdent %>-svc
 spec:
   selector:
     app: kuberneteth
@@ -149,6 +150,7 @@ metadata:
   name: geth-boot-node-pod
   labels:
     app: kuberneteth
+    name: bootnode-pod
 spec:
   containers:
   - name: geth-boot-node-container
@@ -194,6 +196,7 @@ spec:
       labels:
         app: kuberneteth
         tier: backend
+        name: <%= @Node_UserIdent %>-deployment
     spec:
       initContainers:
       - name: <%= @Node_UserIdent %>-genesis-init-container
@@ -301,6 +304,7 @@ metadata:
   labels:
     app: kuberneteth
     tier: frontend
+    name: <%= @config["monitor"]["name"] %>-svc
 spec:
   selector:
     app: kuberneteth
@@ -330,6 +334,7 @@ spec:
       labels:
         app: kuberneteth
         tier: frontend
+        name: <%= @config["monitor"]["name"] %>-deployment
     spec:
       initContainers:
       containers:
