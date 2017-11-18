@@ -61,12 +61,12 @@ data:
         "env":
         {
           "NODE_ENV"        : "production",
-          "RPC_HOST"        : "localhost",
+          "RPC_HOST"        : "<%= @Node_UserIdent %>-rpchost",
           "RPC_PORT"        : "<%= @Node_HTTPPort %>",
           "LISTENING_PORT"  : "<%= @NodeP2P_ListenAddr %>",
-          "INSTANCE_NAME"   : "",
+          "INSTANCE_NAME"   : "<%= @Node_UserIdent %>",
           "CONTACT_DETAILS" : "",
-          "WS_SERVER"       : "<%= @Node_UserIdent %>-ws_server:3001",
+          "WS_SERVER"       : "localhost:3001",
           "WS_SECRET"       : "connectme",
           "VERBOSITY"       : 3
         }
@@ -144,40 +144,45 @@ spec:
 <% end -%>
 
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: extensions/v1beta1
+kind: DaemonSet
 metadata:
-  name: geth-boot-node-pod
+  name: geth-boot-node-daemonset
   labels:
     app: kuberneteth
-    name: bootnode-pod
+    name: bootnode-daemonset
 spec:
-  containers:
-  - name: geth-boot-node-container
-    image: mmeister/geth-node:bootv2
-    ports:
-      - containerPort: <%= @config["bootnode"]["geth"]["Node_HTTPPort"] %>
-      - containerPort: <%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>
-    env:
-    - name: BOOTNODE_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    command: [ "sh" ]
-    args:
-    - "-cx"
-    - "cd <%= @config["bootnode"]["geth"]["Node_DataDir"] %>;
-       /bootnode -genkey boot.key -writeaddress;
-       echo \"enode://$(/bootnode -nodekey boot.key -writeaddress)@$BOOTNODE_POD_IP:30303\" > enode.address;
-       /bootnode -nodekey boot.key;"
-    volumeMounts:
-    - name: geth-boot-node-persistent-storage
-      mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
-  volumes:
-  - name: geth-boot-node-persistent-storage
-    hostPath:
-      path: /var/lib/docker/geth-storage/bootnode
-  restartPolicy: Never
+  template:
+    metadata:
+      labels:
+        app: kuberneteth
+        name: bootnode-daemonset-pod
+    spec:
+      containers:
+      - name: geth-boot-node-container
+        image: mmeister/geth-node:bootv2
+        ports:
+          - containerPort: <%= @config["bootnode"]["geth"]["Node_HTTPPort"] %>
+          - containerPort: <%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>
+        env:
+        - name: BOOTNODE_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        command: [ "sh" ]
+        args:
+        - "-cx"
+        - "cd <%= @config["bootnode"]["geth"]["Node_DataDir"] %>;
+           /bootnode -genkey boot.key -writeaddress;
+           echo \"enode://$(/bootnode -nodekey boot.key -writeaddress)@$BOOTNODE_POD_IP:30303\" > enode.address;
+           /bootnode -nodekey boot.key;"
+        volumeMounts:
+        - name: geth-boot-node-persistent-storage
+          mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
+      volumes:
+      - name: geth-boot-node-persistent-storage
+        hostPath:
+          path: /var/lib/docker/geth-storage/bootnode
 
 <%- @nodes.each do |node| -%>
 <%= set_node_template_vars(node.values.first) -%>
