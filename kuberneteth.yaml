@@ -43,3 +43,5 @@ geth:
   networkId: 1101
   # generic etherbase for the genesis block
   Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
+  # hex value of initial difficulty defined in the genesis block
+  difficulty: "0x1"

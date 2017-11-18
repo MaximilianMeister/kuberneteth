@@ -129,7 +129,7 @@ data:
         "eip158Block": 0
       },
       "nonce": "0x2a",
-      "difficulty": "0x400",
+      "difficulty": "<%= @config["geth"]["difficulty"] %>",
       "gasLimit": "0x200b20",
       "alloc": {
         "<%= @config["geth"]["Eth_Etherbase"] %>": { "balance": "0x21e19e0c9bab2400000" }
@@ -246,10 +246,13 @@ spec:
              touch <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/genesis_created;
            fi;"
         volumeMounts:
+        - name: <%= @Node_UserIdent %>-persistent-storage
+          mountPath: <%= @Node_DataDir %>
         - name: geth-boot-node-persistent-storage
           mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
         - name: genesis-config-persistent-storage
-          mountPath: /etc/geth/genesis
+          mountPath: /etc/geth/genesis/Genesis-geth.json
+          subPath: Genesis-geth.json
       - name: <%= @Node_UserIdent %>-init-container
         image: ethereum/client-go:stable
         command: [ "sh" ]
