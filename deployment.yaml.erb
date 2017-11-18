@@ -96,11 +96,11 @@ data:
         "eip155Block": 0,
         "eip158Block": 0
       },
-      "nonce": "42",
-      "difficulty": "200000000",
-      "gasLimit": "2100000",
+      "nonce": "0x2a",
+      "difficulty": "0x400",
+      "gasLimit": "0x200b20",
       "alloc": {
-        "<%= @Eth_Etherbase %>": { "balance": "10000000000000000000000" }
+        "<%= @config["geth"]["Eth_Etherbase"] %>": { "balance": "10000000000000000000000" }
       }
     }
 
