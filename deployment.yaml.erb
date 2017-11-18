@@ -331,12 +331,6 @@ spec:
         - name: monitor-config-persistent-storage
           mountPath: /ethmonitor
       containers:
-      - name: eth-net-intelligence-api-container
-        image: mmeister/eth-net-intelligence-api
-        volumeMounts:
-        - name: monitor-config-persistent-storage
-          mountPath: /eth-net-intelligence-api/app.json
-          subPath: app.json
       - name: eth-netstats-container
         image: mmeister/eth-netstats
         ports:
@@ -346,6 +340,12 @@ spec:
           value: "connectme"
         - name: PORT
           value: "3001"
+      - name: eth-net-intelligence-api-container
+        image: mmeister/eth-net-intelligence-api
+        volumeMounts:
+        - name: monitor-config-persistent-storage
+          mountPath: /eth-net-intelligence-api/app.json
+          subPath: app.json
       volumes:
       - name: monitor-configmap-volume
         configMap:
