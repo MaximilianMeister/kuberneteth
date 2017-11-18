@@ -1,6 +1,5 @@
 # TODO
 # insert readiness checks
-# run genesis init once on the first node
 <%
 def set_node_template_vars(values)
   @Eth_Etherbase      = values["geth"]["Eth_Etherbase"]
@@ -100,7 +99,7 @@ data:
           "CONTACT_DETAILS" : "",
           "WS_SERVER"       : "localhost:3001",
           "WS_SECRET"       : "connectme",
-          "VERBOSITY"       : 2
+          "VERBOSITY"       : <%= @config["monitor"]["verbosity"] %>
         }
 <%- if index == @nodes.length-1 -%>
       }
@@ -128,9 +127,14 @@ data:
         "eip155Block": 0,
         "eip158Block": 0
       },
-      "nonce": "0x2a",
+      "nonce": "0x42",
+      "mixhash": "0x0",
+      "coinbase": "<%= @config["geth"]["Eth_Etherbase"] %>",
+      "timestamp": "0x0",
+      "parentHash": "0x0",
       "difficulty": "<%= @config["geth"]["difficulty"] %>",
       "gasLimit": "0x200b20",
+      "extraData": "0x",
       "alloc": {
         "<%= @config["geth"]["Eth_Etherbase"] %>": { "balance": "0x21e19e0c9bab2400000" }
       }

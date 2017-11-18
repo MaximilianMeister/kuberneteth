@@ -11,7 +11,7 @@ nodes:
       replicas: 1
     geth:
       Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
-      Eth_MinerThreads: 8
+      Eth_MinerThreads: 1
       Node_UserIdent: miner
       Node_DataDir: /etc/testnet/miner
       Node_HTTPPort: 8545
@@ -24,7 +24,7 @@ nodes:
       replicas: 1
     geth:
       Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
-      Eth_MinerThreads: 8
+      Eth_MinerThreads: 1
       Node_UserIdent: member
       Node_DataDir: /etc/testnet/member
       Node_HTTPPort: 8545
@@ -32,6 +32,7 @@ nodes:
       NodeP2P_ListenAddr: 30303
 monitor:
   name: monitor
+  verbosity: 1
   k8s:
     nodePort: 30007
 consensus_engine: ethash
@@ -44,4 +45,4 @@ geth:
   # generic etherbase for the genesis block
   Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
   # hex value of initial difficulty defined in the genesis block
-  difficulty: "0x1"
+  difficulty: "0x400"
