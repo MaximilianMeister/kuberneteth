@@ -242,7 +242,7 @@ spec:
         args:
         - "-cx"
         - "if [ ! -f <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/genesis_created ]; then
-             /usr/local/bin/geth --datadir <%= @config["bootnode"]["geth"]["Node_DataDir"] %> init /etc/geth/genesis/Genesis-geth.json;
+             /usr/local/bin/geth --datadir <%= @Node_DataDir %> init /etc/geth/genesis/Genesis-geth.json;
              touch <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/genesis_created;
            fi;"
         volumeMounts:
