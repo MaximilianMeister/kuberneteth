@@ -18,7 +18,7 @@ abort "Number of nodes is limited to 100" if nodenumber > 100
 # Create config files for each node
 #####################
 
-def set_template_vars(values)
+def set_node_template_vars(values)
   @Eth_Etherbase      = values["geth"]["Eth_Etherbase"]
   @Eth_MinerThreads   = values["geth"]["Eth_MinerThreads"]
   @Node_UserIdent     = values["geth"]["Node_UserIdent"]
@@ -29,15 +29,11 @@ def set_template_vars(values)
   @nodePort_rpc       = values["k8s"]["nodePort_rpc"]
   @nodePort_ipc       = values["k8s"]["nodePort_ipc"]
   @replicas           = values["k8s"]["replicas"]
-  @networkId          = @config["geth"]["networkId"] rescue 1101
-  @monitor_name       = @config["monitor"]["name"] rescue "monitor"
-  @monitor_nodePort   = @config["monitor"]["k8s"]["nodePort"] rescue nil
-  @bootnode_httpport  = @config["bootnode"]["geth"]["Node_HTTPPort"] rescue 8545
-  @bootnode_listen    = @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] rescue 30303
+  return
 end
 
 @nodes.each do |node|
-  set_template_vars(node.values.first)
+  set_node_template_vars(node.values.first)
 
   File.open("#{@Node_UserIdent}.toml", "w") do |f|
     f.puts (ERB.new(File.read("node.toml.erb"), nil, "-").result)

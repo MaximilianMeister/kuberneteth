@@ -2,6 +2,7 @@ bootnode:
   geth:
     Node_HTTPPort: 8545
     NodeP2P_ListenAddr: 30303
+    Node_DataDir: /etc/testnet/bootnode
 nodes:
 - miner:
     k8s:
