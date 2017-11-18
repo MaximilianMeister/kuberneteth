@@ -1,6 +1,5 @@
 # TODO
 # insert readiness checks
-# write bootnode address on all nodes to be accessible - aka get rid of hostPath
 # run genesis init once on the first node
 <%
 def set_node_template_vars(values)
@@ -17,6 +16,39 @@ def set_node_template_vars(values)
   return
 end
 -%>
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keystore-config
+  namespace: default
+  labels:
+    app: kuberneteth
+    name: keystore-config
+data:
+  # password for encryption is "linux"
+  <%= @config["keystore"]["name"] %>: |-
+    {
+        "address": "023e291a99d21c944a871adcc44561a58f99bdbc",
+        "crypto": {
+            "cipher": "aes-128-ctr",
+            "cipherparams": {
+                "iv": "57ef5312b9eb89d4a5d7f8cef6131987"
+            },
+            "ciphertext": "963839ae10dda6929a682c7e818b8c2af0c39f0eaeff7f1764a7d197e4a472a6",
+            "kdf": "scrypt",
+            "kdfparams": {
+                "dklen": 32,
+                "n": 262144,
+                "p": 1,
+                "r": 8,
+                "salt": "836823419b773fcb0f8708f6129c9a7ce4cc49d1b3997be604b1679542fd03f7"
+            },
+            "mac": "7d3d92f46bf39729dea5060421f98143c79b23f42a7e5a35793956c614985413"
+        },
+        "id": "e04ebdfa-a96a-4581-bb4d-fb8bd54837ae",
+        "version": 3
+    }
 <%- @nodes.each do |node| -%>
 <%= set_node_template_vars(node.values.first) -%>
 ---
@@ -100,7 +132,7 @@ data:
       "difficulty": "0x400",
       "gasLimit": "0x200b20",
       "alloc": {
-        "<%= @config["geth"]["Eth_Etherbase"] %>": { "balance": "10000000000000000000000" }
+        "<%= @config["geth"]["Eth_Etherbase"] %>": { "balance": "0x21e19e0c9bab2400000" }
       }
     }
 
@@ -210,14 +242,14 @@ spec:
         args:
         - "-cx"
         - "if [ ! -f <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/genesis_created ]; then
-             /usr/local/bin/geth --datadir /etc/geth/<%= @Node_UserIdent %> init <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/genesis/Genesis-geth.json;
+             /usr/local/bin/geth --datadir <%= @config["bootnode"]["geth"]["Node_DataDir"] %> init /etc/geth/genesis/Genesis-geth.json;
              touch <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/genesis_created;
            fi;"
         volumeMounts:
         - name: geth-boot-node-persistent-storage
           mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
         - name: genesis-config-persistent-storage
-          mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/genesis
+          mountPath: /etc/geth/genesis
       - name: <%= @Node_UserIdent %>-init-container
         image: ethereum/client-go:stable
         command: [ "sh" ]
@@ -249,10 +281,19 @@ spec:
           mountPath: <%= @Node_DataDir %>
         - name: <%= @Node_UserIdent %>-config-persistent-storage
           mountPath: /etc/geth/<%= @Node_UserIdent %>
+        - name: keystore-config-persistent-storage
+          mountPath: <%= @Node_DataDir %>/keystore/<%= @config["keystore"]["name"] %>
+          subPath: <%= @config["keystore"]["name"] %>
       volumes:
       - name: geth-boot-node-persistent-storage
         hostPath:
           path: /var/lib/docker/geth-storage/bootnode
+      - name: keystore-config-persistent-storage
+        configMap:
+          name: keystore-config
+          items:
+          - key: <%= @config["keystore"]["name"] %>
+            path: <%= @config["keystore"]["name"] %>
       - name: genesis-config-persistent-storage
         configMap:
           name: genesis-config

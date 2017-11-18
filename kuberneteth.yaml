@@ -12,8 +12,8 @@ nodes:
     geth:
       Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
       Eth_MinerThreads: 8
-      Node_UserIdent: miner1
-      Node_DataDir: /etc/testnet/miner1
+      Node_UserIdent: miner
+      Node_DataDir: /etc/testnet/miner
       Node_HTTPPort: 8545
       Node_WSPort: 8546
       NodeP2P_ListenAddr: 30303
@@ -35,6 +35,8 @@ monitor:
   k8s:
     nodePort: 30007
 consensus_engine: ethash
+keystore:
+  name: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
   version: stable
