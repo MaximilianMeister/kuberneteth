@@ -6,13 +6,6 @@ require "erb"
 # generic variables
 @config     = YAML.load_file("kuberneteth.yaml")
 @nodes      = @config["nodes"]
-nodenumber  = @nodes.length
-
-
-#
-# Sanity Checks
-#
-abort "Number of nodes is limited to 100" if nodenumber > 100
 
 #####################
 # Create config files for each node
