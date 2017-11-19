@@ -1,0 +1,22 @@
+# password for encryption is "linux"
+{
+    "address": "023e291a99d21c944a871adcc44561a58f99bdbc",
+    "crypto": {
+        "cipher": "aes-128-ctr",
+        "cipherparams": {
+            "iv": "57ef5312b9eb89d4a5d7f8cef6131987"
+        },
+        "ciphertext": "963839ae10dda6929a682c7e818b8c2af0c39f0eaeff7f1764a7d197e4a472a6",
+        "kdf": "scrypt",
+        "kdfparams": {
+            "dklen": 32,
+            "n": 262144,
+            "p": 1,
+            "r": 8,
+            "salt": "836823419b773fcb0f8708f6129c9a7ce4cc49d1b3997be604b1679542fd03f7"
+        },
+        "mac": "7d3d92f46bf39729dea5060421f98143c79b23f42a7e5a35793956c614985413"
+    },
+    "id": "e04ebdfa-a96a-4581-bb4d-fb8bd54837ae",
+    "version": 3
+}

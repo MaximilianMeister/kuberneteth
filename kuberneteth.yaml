@@ -1,43 +1,44 @@
+# configuration for the bootnode that makes the cluster nodes aware of each other
 bootnode:
+  # assign an rpc/ipc port
   geth:
     Node_HTTPPort: 8545
     NodeP2P_ListenAddr: 30303
     Node_DataDir: /etc/testnet/bootnode
+# here you can add as many nodes as you like, name and configure them
 nodes:
 - miner:
+    # this config values will end up in the k8s manifest directly
     k8s:
+      # open a port on each node (optional)
       nodePort_rpc: 30001
       nodePort_ipc: 30002
       replicas: 1
+    # this config values will alter the geth config toml file which will end up as a ConfigMap in the k8s manifest
     geth:
+      # address where the mining rewards will go to (optional)
       Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
+      # threads (optional)
       Eth_MinerThreads: 1
       Node_UserIdent: miner
       Node_DataDir: /etc/testnet/miner
       Node_HTTPPort: 8545
       Node_WSPort: 8546
       NodeP2P_ListenAddr: 30303
-- member:
-    k8s:
-      nodePort_rpc: 30003
-      nodePort_ipc: 30004
-      replicas: 1
-    geth:
-      Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
-      Eth_MinerThreads: 1
-      Node_UserIdent: member
-      Node_DataDir: /etc/testnet/member
-      Node_HTTPPort: 8545
-      Node_WSPort: 8546
-      NodeP2P_ListenAddr: 30303
+# keep adding nodes
+# - member:
+# ...
 monitor:
   name: monitor
-  verbosity: 1
+  # verbosity can be within [0..3]
+  verbosity: 0
   k8s:
     nodePort: 30007
-consensus_engine: ethash
+# create a private key and add it to the keystore folder
+# ... or just use the example one for testing
 keystore:
   name: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+# generic geth related options
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
   version: stable

@@ -1,2 +1,4 @@
 deployment.yaml
 *.toml
+keystore/*
+!keystore/UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc

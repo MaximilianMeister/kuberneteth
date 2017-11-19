@@ -17,17 +17,21 @@ bootnode:
   geth:
     Node_HTTPPort: 8545
     NodeP2P_ListenAddr: 30303
+    Node_DataDir: /etc/testnet/bootnode
 # here you can add as many nodes as you like, name and configure them
 nodes:
 - miner:
     # this config values will end up in the k8s manifest directly
     k8s:
+      # open a port on each node (optional)
       nodePort_rpc: 30001
       nodePort_ipc: 30002
       replicas: 1
     # this config values will alter the geth config toml file which will end up as a ConfigMap in the k8s manifest
     geth:
+      # address where the mining rewards will go to (optional)
       Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
+      # threads (optional)
       Eth_MinerThreads: 1
       Node_UserIdent: miner
       Node_DataDir: /etc/testnet/miner
@@ -39,13 +43,23 @@ nodes:
 # ...
 monitor:
   name: monitor
+  # verbosity can be within [0..3]
+  verbosity: 0
   k8s:
-    nodePort: 30005
+    nodePort: 30007
+# create a private key and add it to the keystore folder
+# ... or just use the example one for testing
+keystore:
+  name: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
 # generic geth related options
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
   version: stable
   networkId: 1101
+  # generic etherbase for the genesis block
+  Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
+  # hex value of initial difficulty defined in the genesis block
+  difficulty: "0x400"
 ```
 
 ## deployment and cluster setup
@@ -98,7 +112,7 @@ to clean up and start from scratch:
 kubectl delete -f deployment.yaml
 ```
 
-make sure to clean up the `hostPath` manually, I usually wipe all folders, but the `keystore` from the miner node to keep the `coinbase` in place
+make sure to clean up the `hostPath` manually
 
 ## deploying contracts
 once your ethereum cluster is running, you can start to publish contracts. i have started with a simple [example](contracts/provider.sol) derived from a good introduction that you can find [here](https://www.youtube.com/watch?v=9_coM_g7Dbg)
