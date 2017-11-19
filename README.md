@@ -91,14 +91,19 @@ services are:
 * (json)rpc/ipc for each node, to connect e.g. [mist](https://github.com/ethereum/mist) a useful application to send transactions deploy smart contracts, and interact with the network -> runs at [http://localhost:8545](http://localhost:8545)
 * the `eth-netstats` dashboard -> visit [http://localhost:3001](http://localhost:3001)
 
+## the monitoring dashboard (sreenshot example below)
 ```bash
-# the monitoring dashboard
 kubectl port-forward $(kubectl get pod | grep monitor | awk '{print $1}') 3001:3001
-# connecting a wallet or any service that talks to the json rpc
+```
+
+![Screenshot](https://raw.githubusercontent.com/cubedro/eth-netstats/master/src/images/screenshot.jpg?v=0.0.6 "Screenshot")
+
+## connecting a wallet or any service that talks to the json rpc
+```bash
 kubectl port-forward $(kubectl get pod | grep [SOME_NODE_POD_NAME] | awk '{print $1}') 8545:8545
 ```
 
-## using mist wallet
+### using mist wallet
 if you're using mist to interact with the network, make sure to connect it to the network via:
 
 ```bash
