@@ -207,7 +207,7 @@ metadata:
   name: geth-<%= @Node_UserIdent %>-deployment
 spec:
   strategy:
-    type: Recreate
+    type: RollingUpdate
   replicas: <%= @replicas %>
   template:
     metadata:
