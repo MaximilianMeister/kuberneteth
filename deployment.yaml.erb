@@ -219,7 +219,7 @@ spec:
     spec:
       initContainers:
       - name: <%= @Node_UserIdent %>-genesis-init-container
-        image: ethereum/client-go:stable
+        image: ethereum/client-go:<%= @config["geth"]["version"] %>
         command: [ "sh" ]
         args:
         - "-cx"
@@ -236,7 +236,7 @@ spec:
           mountPath: /etc/geth/genesis/Genesis-geth.json
           subPath: Genesis-geth.json
       - name: <%= @Node_UserIdent %>-init-container
-        image: ethereum/client-go:stable
+        image: ethereum/client-go:<%= @config["geth"]["version"] %>
         command: [ "sh" ]
         args:
         - "-cx"
@@ -250,7 +250,7 @@ spec:
           mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
       containers:
       - name: <%= @Node_UserIdent %>-container
-        image: ethereum/client-go:stable
+        image: ethereum/client-go:<%= @config["geth"]["version"] %>
 <%- if @Eth_Etherbase && @Eth_MinerThreads -%>
         args: [ "--mine", "--config", "/etc/geth/<%= @Node_UserIdent %>/gethconfig.toml" ]
 <% else -%>
