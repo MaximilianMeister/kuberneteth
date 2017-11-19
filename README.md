@@ -4,7 +4,7 @@ deploy a private [ethereum](https://ethereum.org/) blockchain network with kuber
 ## infrastructure
 the manifest produced by [kuberneteth](./kuberneteth) should work on any platform where kubernetes is up and running.
 
-Make sure to have kubernetes up and running, either via the [official documentation](https://kubernetes.io/docs/setup/pick-right-solution/)
+Make sure to have kubernetes up and running, e.g. via the [official documentation](https://kubernetes.io/docs/setup/pick-right-solution/)
 
 ## configuration
 the deployment can be configured on a high level via a yaml file [kuberneteth.yaml](kuberneteth.yaml)
