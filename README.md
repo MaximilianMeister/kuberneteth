@@ -51,6 +51,9 @@ monitor:
 # ... or just use the example one for testing
 keystore:
   name: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+  # true: upload secret first via 'kubectl create secret generic geth-key --from-file /path/to/keyfile'
+  # false: use the key in keystore folder
+  secret: false
 # generic geth related options
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
@@ -79,6 +82,23 @@ the deployment will set up a [geth](https://github.com/ethereum/go-ethereum) clu
 
 ## workflow
 once the kubernetes cluster is up and healthy (verify via `kubectl cluster-info`), you can deploy the geth cluster via the following sequence:
+
+if you have set `keystore.secret` to `true` in [kuberneteth.yaml](./kuberneteth.yaml) create an account and upload the key
+
+```bash
+# create a new encrypted keyfile
+$ geth account new
+Your new account is locked with a password. Please give a password. Do not forget this password.
+Passphrase:
+Repeat passphrase:
+Address: {30a75c364a57d7479b7c5d16c5dc4dcc2176eb5b}
+# upload it to the kubernetes server
+$ kubectl create secret generic geth-key --from-file ~/.ethereum/keystore/UTC--2017-11-20T18-36-59.948336313Z--30a75c364a57d7479b7c5d16c5dc4dcc2176eb5b
+```
+
+if not, just copy any existing geth key to the `keystore` folder, and add it's name to `kuberneteth.yaml` or use the key that is already present in the folder if you just want to play around (password is 'linux')
+
+once the key is provided you can just create the cluster with those 2 commands:
 
 ```bash
 ./kuberneteth # this will create a file called 'deployment.yaml'

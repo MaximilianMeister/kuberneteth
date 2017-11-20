@@ -38,6 +38,9 @@ monitor:
 # ... or just use the example one for testing
 keystore:
   name: UTC--2017-04-06T08-30-06.659191254Z--023e291a99d21c944a871adcc44561a58f99bdbc
+  # true: upload secret first via 'kubectl create secret generic geth-key --from-file /path/to/keyfile'
+  # false: use the key in keystore folder
+  secret: false
 # generic geth related options
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
