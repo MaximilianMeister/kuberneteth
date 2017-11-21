@@ -12,16 +12,17 @@ require "erb"
 #####################
 
 def set_node_template_vars(values)
-  @Eth_Etherbase      = values["geth"]["Eth_Etherbase"]
-  @Eth_MinerThreads   = values["geth"]["Eth_MinerThreads"]
-  @Node_UserIdent     = values["geth"]["Node_UserIdent"]
-  @Node_DataDir       = values["geth"]["Node_DataDir"]
-  @Node_HTTPPort      = values["geth"]["Node_HTTPPort"]
-  @Node_WSPort        = values["geth"]["Node_WSPort"]
-  @NodeP2P_ListenAddr = values["geth"]["NodeP2P_ListenAddr"]
-  @nodePort_rpc       = values["k8s"]["nodePort_rpc"]
-  @nodePort_ipc       = values["k8s"]["nodePort_ipc"]
-  @replicas           = values["k8s"]["replicas"]
+  @Eth_Etherbase         = values["geth"]["Eth_Etherbase"]
+  @Eth_MinerThreads      = values["geth"]["Eth_MinerThreads"]
+  @Node_UserIdent        = values["geth"]["Node_UserIdent"]
+  @Node_DataDir          = values["geth"]["Node_DataDir"]
+  @Node_HTTPPort         = values["geth"]["Node_HTTPPort"]
+  @Node_WSPort           = values["geth"]["Node_WSPort"]
+  @NodeP2P_ListenAddr    = values["geth"]["NodeP2P_ListenAddr"]
+  @NodeP2P_DiscoveryAddr = values["geth"]["NodeP2P_DiscoveryAddr"]
+  @nodePort_rpc          = values["k8s"]["nodePort_rpc"]
+  @nodePort_ipc          = values["k8s"]["nodePort_ipc"]
+  @replicas              = values["k8s"]["replicas"]
   return
 end
 

@@ -29,6 +29,7 @@ cat <<EOF
       Node_DataDir: /etc/testnet/$name
       Node_HTTPPort: 8545
       Node_WSPort: 8546
-      NodeP2P_ListenAddr: 30303
+      NodeP2P_ListenAddr: 30301
+      NodeP2P_DiscoveryAddr: 30303
 EOF
 done

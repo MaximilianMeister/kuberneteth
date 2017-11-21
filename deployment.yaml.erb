@@ -1,17 +1,19 @@
 # TODO
 # insert readiness checks
+# make nodes communicate with each other, connect them through service discovery
 <%
 def set_node_template_vars(values)
-  @Eth_Etherbase      = values["geth"]["Eth_Etherbase"]
-  @Eth_MinerThreads   = values["geth"]["Eth_MinerThreads"]
-  @Node_UserIdent     = values["geth"]["Node_UserIdent"]
-  @Node_DataDir       = values["geth"]["Node_DataDir"]
-  @Node_HTTPPort      = values["geth"]["Node_HTTPPort"]
-  @Node_WSPort        = values["geth"]["Node_WSPort"]
-  @NodeP2P_ListenAddr = values["geth"]["NodeP2P_ListenAddr"]
-  @nodePort_rpc       = values["k8s"]["nodePort_rpc"]
-  @nodePort_ipc       = values["k8s"]["nodePort_ipc"]
-  @replicas           = values["k8s"]["replicas"]
+  @Eth_Etherbase         = values["geth"]["Eth_Etherbase"]
+  @Eth_MinerThreads      = values["geth"]["Eth_MinerThreads"]
+  @Node_UserIdent        = values["geth"]["Node_UserIdent"]
+  @Node_DataDir          = values["geth"]["Node_DataDir"]
+  @Node_HTTPPort         = values["geth"]["Node_HTTPPort"]
+  @Node_WSPort           = values["geth"]["Node_WSPort"]
+  @NodeP2P_ListenAddr    = values["geth"]["NodeP2P_ListenAddr"]
+  @NodeP2P_DiscoveryAddr = values["geth"]["NodeP2P_DiscoveryAddr"]
+  @nodePort_rpc          = values["k8s"]["nodePort_rpc"]
+  @nodePort_ipc          = values["k8s"]["nodePort_ipc"]
+  @replicas              = values["k8s"]["replicas"]
   return
 end
 -%>
@@ -77,7 +79,7 @@ data:
           "NODE_ENV"        : "production",
           "RPC_HOST"        : "<%= @Node_UserIdent %>-rpchost",
           "RPC_PORT"        : "<%= @Node_HTTPPort %>",
-          "LISTENING_PORT"  : "<%= @NodeP2P_ListenAddr %>",
+          "LISTENING_PORT"  : "<%= @NodeP2P_DiscoveryAddr %>",
           "INSTANCE_NAME"   : "<%= @Node_UserIdent %>",
           "CONTACT_DETAILS" : "",
           "WS_SERVER"       : "localhost:3001",
@@ -150,48 +152,69 @@ spec:
       protocol: TCP
       port: <%= @Node_WSPort %>
       targetPort: <%= @Node_WSPort %>
-    - name: <%= @Node_UserIdent %>-ipc
+    - name: <%= @Node_UserIdent %>-ipc-listen
       protocol: UDP
       port: <%= @NodeP2P_ListenAddr %>
       targetPort: <%= @NodeP2P_ListenAddr %>
+    - name: <%= @Node_UserIdent %>-ipc-discovery
+      protocol: TCP
+      port: <%= @NodeP2P_DiscoveryAddr %>
+      targetPort: <%= @NodeP2P_DiscoveryAddr %>
 <%- if @nodePort_ipc -%>
       nodePort: <%= @nodePort_ipc %>
 <% end -%>
 <% end -%>
 
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: geth-bootnode-svc
+  labels:
+    app: kuberneteth
+    tier: backend
+    name: geth-bootnode-svc
+spec:
+  selector:
+    app: kuberneteth
+    tier: backend
+  ports:
+    - name: geth-bootnode-ipc-listen
+      protocol: UDP
+      port: <%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>
+      targetPort: <%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>
+    - name: geth-bootnode-ipc-discovery
+      protocol: TCP
+      port: <%= @config["bootnode"]["geth"]["NodeP2P_DiscoveryAddr"] %>
+      targetPort: <%= @config["bootnode"]["geth"]["NodeP2P_DiscoveryAddr"] %>
+
+---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: geth-boot-node-daemonset
+  name: geth-boot-node-setup-pod
   labels:
     app: kuberneteth
-    name: bootnode-daemonset
+    name: bootnode-setup-pod
 spec:
   template:
     metadata:
       labels:
         app: kuberneteth
-        name: bootnode-daemonset-pod
+        name: bootnode-setup-pod
     spec:
       containers:
-      - name: geth-boot-node-container
+      - name: geth-boot-node-setup-container
         image: mmeister/geth-node:bootv2
-        ports:
-          - containerPort: <%= @config["bootnode"]["geth"]["Node_HTTPPort"] %>
-          - containerPort: <%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>
-        env:
-        - name: BOOTNODE_POD_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
         command: [ "sh" ]
         args:
         - "-cx"
         - "cd <%= @config["bootnode"]["geth"]["Node_DataDir"] %>;
-           /bootnode -genkey boot.key -writeaddress;
-           echo \"enode://$(/bootnode -nodekey boot.key -writeaddress)@$BOOTNODE_POD_IP:30303\" > enode.address;
-           /bootnode -nodekey boot.key;"
+           echo <%= @config["bootnode"]["nodekey"] %> > boot.key;
+           echo \"enode://$(/bootnode -nodekey boot.key -writeaddress)@$GETH_BOOTNODE_SVC_SERVICE_HOST:<%= @config["bootnode"]["geth"]["NodeP2P_DiscoveryAddr"] %>?discport=<%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>\" > enode.address;
+           set +x;
+           while true; do :; done;"
+        imagePullPolicy: Always
         volumeMounts:
         - name: geth-boot-node-persistent-storage
           mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
@@ -199,6 +222,57 @@ spec:
       - name: geth-boot-node-persistent-storage
         hostPath:
           path: /var/lib/docker/geth-storage/bootnode
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: geth-boot-node-pod
+  labels:
+    app: kuberneteth
+    name: geth-bootnode-pod
+spec:
+  containers:
+  - name: geth-boot-node-container
+    image: mmeister/geth-node:bootv2
+    ports:
+      - containerPort: <%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>
+      - containerPort: <%= @config["bootnode"]["geth"]["NodeP2P_DiscoveryAddr"] %>
+    command: [ "sh" ]
+    args:
+    - "-cx"
+    - "cd <%= @config["bootnode"]["geth"]["Node_DataDir"] %>;
+       /geth --datadir <%= @config["bootnode"]["geth"]["Node_DataDir"] %> init /etc/geth/genesis/Genesis-geth.json;
+       /bootnode -nodekey boot.key;"
+    volumeMounts:
+    - name: geth-boot-node-persistent-storage
+      mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
+    - name: genesis-config-persistent-storage
+      mountPath: /etc/geth/genesis/Genesis-geth.json
+      subPath: Genesis-geth.json
+    - name: keystore-config-persistent-storage
+      mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/keystore/<%= @config["keystore"]["name"] %>
+      subPath: <%= @config["keystore"]["name"] %>
+  volumes:
+  - name: keystore-config-persistent-storage
+<%- if @config["keystore"]["secret"] -%>
+    secret:
+      secretName: geth-key
+<% else -%>
+    configMap:
+      name: keystore-config
+      items:
+      - key: <%= @config["keystore"]["name"] %>
+        path: <%= @config["keystore"]["name"] %>
+<% end -%>
+  - name: geth-boot-node-persistent-storage
+    hostPath:
+      path: /var/lib/docker/geth-storage/bootnode
+  - name: genesis-config-persistent-storage
+    configMap:
+      name: genesis-config
+      items:
+      - key: Genesis-geth.json
+        path: Genesis-geth.json
 
 <%- @nodes.each do |node| -%>
 <%= set_node_template_vars(node.values.first) -%>
@@ -244,7 +318,8 @@ spec:
         - "-cx"
         - "ENODE=$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address);
            ENODE_ESC=$(echo $ENODE | sed 's@//@\\\\/\\\\/@g');
-           sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;"
+           sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;
+           sed -i \"s/BootstrapNodesV5 = \\[\\]/BootstrapNodesV5 = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;"
         volumeMounts:
         - name: <%= @Node_UserIdent %>-config-persistent-storage
           mountPath: /etc/geth/<%= @Node_UserIdent %>
@@ -263,6 +338,7 @@ spec:
           - containerPort: <%= @Node_WSPort %>
           - containerPort: <%= @NodeP2P_ListenAddr %>
             protocol: UDP
+          - containerPort: <%= @NodeP2P_DiscoveryAddr %>
         volumeMounts:
         - name: <%= @Node_UserIdent %>-persistent-storage
           mountPath: <%= @Node_DataDir %>

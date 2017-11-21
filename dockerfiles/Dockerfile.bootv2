@@ -6,6 +6,7 @@ RUN \
   git clone https://github.com/ethereum/go-ethereum                                    && \
   (cd go-ethereum && make all)                                                         && \
   cp go-ethereum/build/bin/bootnode /bootnode                                          && \
+  cp go-ethereum/build/bin/geth /geth                                                  && \
   apk del git go make gcc musl-dev linux-headers                                       && \
   rm -rf /go-ethereum && rm -rf /var/cache/apk/*
 

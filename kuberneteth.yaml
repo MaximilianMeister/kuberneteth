@@ -1,9 +1,11 @@
-# configuration for the bootnode that makes the cluster nodes aware of each other
+# configuration for the bootnode that makes the cluster nodes aware of each other - for that make sure bootnode has same genesis block
+# get rid of nodePort
 bootnode:
+  nodekey: 3bed8e0fa771475049cddac0fcc20a6cf1005e271e2b12ef339f213218b2dbdb
   # assign an rpc/ipc port
   geth:
-    Node_HTTPPort: 8545
-    NodeP2P_ListenAddr: 30303
+    NodeP2P_ListenAddr: 30301
+    NodeP2P_DiscoveryAddr: 30303
     Node_DataDir: /etc/testnet/bootnode
 # here you can add as many nodes as you like, name and configure them
 nodes:
@@ -24,7 +26,8 @@ nodes:
       Node_DataDir: /etc/testnet/miner
       Node_HTTPPort: 8545
       Node_WSPort: 8546
-      NodeP2P_ListenAddr: 30303
+      NodeP2P_ListenAddr: 30301
+      NodeP2P_DiscoveryAddr: 30303
 # keep adding nodes
 # - member:
 # ...
