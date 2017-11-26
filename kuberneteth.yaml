@@ -1,7 +1,7 @@
 # configuration for the bootnode that makes the cluster nodes aware of each other - for that make sure bootnode has same genesis block
-# get rid of nodePort
 bootnode:
-  nodekey: 3bed8e0fa771475049cddac0fcc20a6cf1005e271e2b12ef339f213218b2dbdb
+  nodekeyhex: 3bed8e0fa771475049cddac0fcc20a6cf1005e271e2b12ef339f213218b2dbdb
+  verbosity: 9
   # assign an rpc/ipc port
   geth:
     NodeP2P_ListenAddr: 30301
@@ -49,7 +49,7 @@ geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
   version: stable
   networkId: 1101
-  # generic etherbase for the genesis block
-  Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
   # hex value of initial difficulty defined in the genesis block
   difficulty: "0x400"
+  NodeP2P_Netrestrict: "172.16.0.0/12"
+  verbosity: 3

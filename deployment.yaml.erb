@@ -1,6 +1,5 @@
 # TODO
 # insert readiness checks
-# make nodes communicate with each other, connect them through service discovery
 <%
 def set_node_template_vars(values)
   @Eth_Etherbase         = values["geth"]["Eth_Etherbase"]
@@ -106,20 +105,22 @@ metadata:
 data:
   Genesis-geth.json: |-
     {
-      "config": {
-        "chainId": <%= @config["geth"]["networkId"] %>,
-        "homesteadBlock": 0,
-        "eip155Block": 0,
-        "eip158Block": 0
-      },
-      "nonce": "0x42",
-      "coinbase": "<%= @config["geth"]["Eth_Etherbase"] %>",
-      "difficulty": "<%= @config["geth"]["difficulty"] %>",
-      "gasLimit": "0x200b20",
-      "extraData": "0x",
-      "alloc": {
-        "<%= @config["geth"]["Eth_Etherbase"] %>": { "balance": "0x21e19e0c9bab2400000" }
-      }
+        "config": {
+            "chainId": <%= @config["geth"]["networkId"] %>,
+            "homesteadBlock": 0,
+            "eip155Block": 0,
+            "eip158Block": 0
+        },
+        "coinbase" : "0x0000000000000000000000000000000000000000",
+        "difficulty" : "<%= @config["geth"]["difficulty"] %>",
+        "extraData" : "0x",
+        "gasLimit" : "0x47e7c5",
+        "nonce" : "0x0000000000000042",
+        "mixhash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "timestamp" : "0x00",
+        "alloc" : {
+        }
     }
 
 <%- @nodes.each do |node| -%>
@@ -179,12 +180,8 @@ spec:
     app: kuberneteth
     tier: backend
   ports:
-    - name: geth-bootnode-ipc-listen
-      protocol: UDP
-      port: <%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>
-      targetPort: <%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>
     - name: geth-bootnode-ipc-discovery
-      protocol: TCP
+      protocol: UDP
       port: <%= @config["bootnode"]["geth"]["NodeP2P_DiscoveryAddr"] %>
       targetPort: <%= @config["bootnode"]["geth"]["NodeP2P_DiscoveryAddr"] %>
 
@@ -210,11 +207,9 @@ spec:
         args:
         - "-cx"
         - "cd <%= @config["bootnode"]["geth"]["Node_DataDir"] %>;
-           echo <%= @config["bootnode"]["nodekey"] %> > boot.key;
-           echo \"enode://$(/bootnode -nodekey boot.key -writeaddress)@$GETH_BOOTNODE_SVC_SERVICE_HOST:<%= @config["bootnode"]["geth"]["NodeP2P_DiscoveryAddr"] %>?discport=<%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>\" > enode.address;
+           echo \"enode://$(/bootnode -nodekeyhex <%= @config["bootnode"]["nodekeyhex"] %> -writeaddress)@$GETH_BOOTNODE_SVC_SERVICE_HOST:<%= @config["bootnode"]["geth"]["NodeP2P_DiscoveryAddr"] %>\" > enode.address;
            set +x;
            while true; do :; done;"
-        imagePullPolicy: Always
         volumeMounts:
         - name: geth-boot-node-persistent-storage
           mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
@@ -237,12 +232,13 @@ spec:
     ports:
       - containerPort: <%= @config["bootnode"]["geth"]["NodeP2P_ListenAddr"] %>
       - containerPort: <%= @config["bootnode"]["geth"]["NodeP2P_DiscoveryAddr"] %>
+        protocol: UDP
     command: [ "sh" ]
     args:
-    - "-cx"
+    - "-c"
     - "cd <%= @config["bootnode"]["geth"]["Node_DataDir"] %>;
        /geth --datadir <%= @config["bootnode"]["geth"]["Node_DataDir"] %> init /etc/geth/genesis/Genesis-geth.json;
-       /bootnode -nodekey boot.key;"
+       /bootnode --nodekeyhex <%= @config["bootnode"]["nodekeyhex"] %> --addr \":<%= @config["bootnode"]["geth"]["NodeP2P_DiscoveryAddr"] %>\" --nat any --netrestrict <%= @config["geth"]["NodeP2P_Netrestrict"] %> --verbosity <%= @config["bootnode"]["verbosity"] %>;"
     volumeMounts:
     - name: geth-boot-node-persistent-storage
       mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
@@ -299,10 +295,7 @@ spec:
         command: [ "sh" ]
         args:
         - "-cx"
-        - "if [ ! -f <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/genesis_created ]; then
-             /usr/local/bin/geth --datadir <%= @Node_DataDir %> init /etc/geth/genesis/Genesis-geth.json;
-             touch <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/genesis_created;
-           fi;"
+        - "/usr/local/bin/geth --datadir <%= @Node_DataDir %> init /etc/geth/genesis/Genesis-geth.json;"
         volumeMounts:
         - name: <%= @Node_UserIdent %>-persistent-storage
           mountPath: <%= @Node_DataDir %>
@@ -318,8 +311,7 @@ spec:
         - "-cx"
         - "ENODE=$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address);
            ENODE_ESC=$(echo $ENODE | sed 's@//@\\\\/\\\\/@g');
-           sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;
-           sed -i \"s/BootstrapNodesV5 = \\[\\]/BootstrapNodesV5 = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;"
+           sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;"
         volumeMounts:
         - name: <%= @Node_UserIdent %>-config-persistent-storage
           mountPath: /etc/geth/<%= @Node_UserIdent %>
@@ -328,10 +320,21 @@ spec:
       containers:
       - name: <%= @Node_UserIdent %>-container
         image: ethereum/client-go:<%= @config["geth"]["version"] %>
+        command: [ "sh" ]
+        args:
+        - "-cx"
+        - "/usr/local/bin/geth \
 <%- if @Eth_Etherbase && @Eth_MinerThreads -%>
-        args: [ "--mine", "--config", "/etc/geth/<%= @Node_UserIdent %>/gethconfig.toml" ]
+           --netrestrict <%= @config["geth"]["NodeP2P_Netrestrict"] %> \
+           --verbosity <%= @config["geth"]["verbosity"] %>  \
+           --config /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml \
+           --mine \
+           --bootnodes \"$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address)\";"
 <% else -%>
-        args: [ "--config", "/etc/geth/<%= @Node_UserIdent %>/gethconfig.toml" ]
+           --netrestrict <%= @config["geth"]["NodeP2P_Netrestrict"] %> \
+           --verbosity <%= @config["geth"]["verbosity"] %> \
+           --config /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml \
+           --bootnodes \"$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address)\";"
 <% end -%>
         ports:
           - containerPort: <%= @Node_HTTPPort %>
@@ -347,6 +350,8 @@ spec:
         - name: keystore-config-persistent-storage
           mountPath: <%= @Node_DataDir %>/keystore/<%= @config["keystore"]["name"] %>
           subPath: <%= @config["keystore"]["name"] %>
+        - name: geth-boot-node-persistent-storage
+          mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
       volumes:
       - name: geth-boot-node-persistent-storage
         hostPath:
