@@ -295,7 +295,10 @@ spec:
         command: [ "sh" ]
         args:
         - "-cx"
-        - "/usr/local/bin/geth --datadir <%= @Node_DataDir %> init /etc/geth/genesis/Genesis-geth.json;"
+        - "if [ ! -f <%= @Node_DataDir %>/genesis_created ]; then
+             /usr/local/bin/geth --datadir <%= @Node_DataDir %> init /etc/geth/genesis/Genesis-geth.json;
+             touch <%= @Node_DataDir %>/genesis_created;
+           fi;"
         volumeMounts:
         - name: <%= @Node_UserIdent %>-persistent-storage
           mountPath: <%= @Node_DataDir %>
