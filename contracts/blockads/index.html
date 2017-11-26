@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+
+  <body>
+    <div id="background">
+      <video id="myVideo" width=640 height=320>
+      </video>
+    </div>
+    <div id="overlay" class="overlay-center">Play your Ad @ this Contract address: 0x7d6Ef8F20B86A4da628e9342A2A66b4f94CD1553</div>
+
+    <script src='http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+    <script src="assets/js/index.js"></script>
+    <script src="assets/js/web3.js"></script>
+
+    <script>
+      // configuration
+      var abi = [ { "constant": true, "inputs": [ { "name": "", "type": "address" } ], "name": "videos", "outputs": [ { "name": "name", "type": "string", "value": "" }, { "name": "length", "type": "uint8", "value": "0" }, { "name": "url", "type": "string", "value": "" }, { "name": "lastUpdate", "type": "uint256", "value": "0" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [], "name": "kill", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": false, "inputs": [ { "name": "_userAddress", "type": "address" }, { "name": "_name", "type": "string" }, { "name": "_length", "type": "uint8" }, { "name": "_url", "type": "string" } ], "name": "broadcast", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "owner", "outputs": [ { "name": "", "type": "address", "value": "0x023e291a99d21c944a871adcc44561a58f99bdbc" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "anonymous": false, "inputs": [ { "indexed": false, "name": "from", "type": "address" }, { "indexed": false, "name": "url", "type": "string" } ], "name": "broadcasted", "type": "event" } ]
+      var contractAddress = "0x7d6Ef8F20B86A4da628e9342A2A66b4f94CD1553";
+    </script>
+
+    <script>
+      backgroundElement = document.getElementById("background")
+      overlayElement = document.getElementById("overlay")
+      videoElement = document.getElementById("myVideo")
+
+      // load web3.js
+      var Web3 = require('web3');
+      var web3 = new Web3();
+      web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
+
+      // load the contract object
+      var blockshaperContract = web3.eth.contract(abi);
+      var myContractInstance = blockshaperContract.at(contractAddress);
+
+      // watch for events
+      var filter = web3.eth.filter({ address: [contractAddress], fromBlock: 0, toBlock: "latest" });
+      filter.watch(function (error, result) {
+        // extract the senderAddress from the data object
+        senderAddress = result.data.substring(26, 66);
+        // load the video object of the address that signed a contract instance
+        /*
+          videoInstance[0] = url
+          videoInstance[1] = length
+          videoInstance[2] = format
+          videoInstance[3] = lastChanged
+        */
+        videoInstance = myContractInstance.videos("0x" + senderAddress);
+        // play the ad for the specified amount of time
+        videoElement.innerHTML = '<source src="' + videoInstance[0] + '" type="video/' + videoInstance[2] + '">'
+        videoElement.currentTime = 0;
+        backgroundElement.style.visibility = "hidden";
+        overlayElement.style.visibility = "hidden";
+        videoElement.style.visibility = "visible";
+        videoElement.load();
+        videoElement.play(); 
+        setTimeout(function(){
+          videoElement.pause();
+          videoElement.style.visibility = "hidden";
+          backgroundElement.style.visibility = "visible";
+          overlayElement.style.visibility = "visible";
+        }, videoInstance[1].toNumber() * 1000);
+      });
+    </script>
+  </body>
+</html>
