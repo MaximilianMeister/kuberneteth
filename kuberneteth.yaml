@@ -1,6 +1,7 @@
 # configuration for the bootnode that makes the cluster nodes aware of each other - for that make sure bootnode has same genesis block
 bootnode:
   nodekeyhex: 3bed8e0fa771475049cddac0fcc20a6cf1005e271e2b12ef339f213218b2dbdb
+  # verbosity of the bootnode [1..9]
   verbosity: 9
   # assign an rpc/ipc port
   geth:
@@ -48,8 +49,12 @@ keystore:
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
   version: stable
+  # network id (1 is mainnet)
   networkId: 1101
   # hex value of initial difficulty defined in the genesis block
   difficulty: "0x400"
+  # as it is a private cluster, provide a CIDR of the cluster's network
+  # to prevent other nodes connecting from the outside
   NodeP2P_Netrestrict: "172.16.0.0/12"
+  # general verbosity of geth [1..5]
   verbosity: 3

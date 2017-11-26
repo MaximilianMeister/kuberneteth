@@ -11,12 +11,15 @@ the deployment can be configured on a high level via a yaml file [kuberneteth.ya
 
 options are:
 ```yaml
-# configuration for the bootnode that makes the cluster nodes aware of each other
+# configuration for the bootnode that makes the cluster nodes aware of each other - for that make sure bootnode has same genesis block
 bootnode:
+  nodekeyhex: 3bed8e0fa771475049cddac0fcc20a6cf1005e271e2b12ef339f213218b2dbdb
+  # verbosity of the bootnode [1..9]
+  verbosity: 9
   # assign an rpc/ipc port
   geth:
-    Node_HTTPPort: 8545
-    NodeP2P_ListenAddr: 30303
+    NodeP2P_ListenAddr: 30301
+    NodeP2P_DiscoveryAddr: 30303
     Node_DataDir: /etc/testnet/bootnode
 # here you can add as many nodes as you like, name and configure them
 nodes:
@@ -37,7 +40,8 @@ nodes:
       Node_DataDir: /etc/testnet/miner
       Node_HTTPPort: 8545
       Node_WSPort: 8546
-      NodeP2P_ListenAddr: 30303
+      NodeP2P_ListenAddr: 30301
+      NodeP2P_DiscoveryAddr: 30303
 # keep adding nodes
 # - member:
 # ...
@@ -58,11 +62,15 @@ keystore:
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
   version: stable
+  # network id (1 is mainnet)
   networkId: 1101
-  # generic etherbase for the genesis block
-  Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
   # hex value of initial difficulty defined in the genesis block
   difficulty: "0x400"
+  # as it is a private cluster, provide a CIDR of the cluster's network
+  # to prevent other nodes connecting from the outside
+  NodeP2P_Netrestrict: "172.16.0.0/12"
+  # general verbosity of geth [1..5]
+  verbosity: 3
 ```
 
 ## deployment and cluster setup
