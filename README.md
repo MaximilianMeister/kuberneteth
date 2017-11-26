@@ -150,6 +150,8 @@ make sure to clean up the `hostPath` manually
 ## deploying contracts
 once your ethereum cluster is running, you can start to publish contracts. i have started with a simple [example](contracts/provider.sol) derived from a good introduction that you can find [here](https://www.youtube.com/watch?v=9_coM_g7Dbg)
 
+however i have also starte my own example, it's a small video ad platform, that you can find [here](contracts/blockads). just deploy [this](contracts/blockads.sol) contract, adapt [index.html](contracts/blockads/index.html) by adding the right contract address and contract abi.
+
 ## running a distributed application
 the next step is to write an application that leverages the capabilities of your smart contract. there are several ways to do this, as there are already many integrations and libraries around that are able to communicate with a contract.
 
