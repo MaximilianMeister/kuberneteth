@@ -340,17 +340,12 @@ spec:
            --dashboard \
 <% end -%>
 <%- if @Eth_Etherbase && @Eth_MinerThreads -%>
+           --mine \
+<% end -%>
            --netrestrict <%= @config["geth"]["NodeP2P_Netrestrict"] %> \
            --verbosity <%= @config["geth"]["verbosity"] %>  \
            --config /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml \
-           --mine \
-           --bootnodes \"$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address)\";"
-<% else -%>
-           --netrestrict <%= @config["geth"]["NodeP2P_Netrestrict"] %> \
-           --verbosity <%= @config["geth"]["verbosity"] %> \
-           --config /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml \
-           --bootnodes \"$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address)\";"
-<% end -%>
+           --bootnodes \"$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address)\";" # FIXME drop when https://github.com/ethereum/go-ethereum/pull/15557 is at least in the stable version
         ports:
           - containerPort: <%= @Node_HTTPPort %>
           - containerPort: <%= @Node_WSPort %>
