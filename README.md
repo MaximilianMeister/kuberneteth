@@ -1,10 +1,27 @@
 # kuberneteth
 deploy a private [ethereum](https://ethereum.org/) blockchain network with kubernetes
 
+another detailed guide can be found on [medium.com](https://medium.com/@mmeister/leveraging-kubernetes-to-run-a-private-production-ready-ethereum-network-b6f9b49098df)
+
 ## infrastructure
 the manifest produced by [kuberneteth](./kuberneteth) should work on any platform where kubernetes is up and running.
 
 Make sure to have kubernetes up and running, e.g. via the [official documentation](https://kubernetes.io/docs/setup/pick-right-solution/)
+
+## deployment and cluster setup
+the deployment of the ethereum network nodes happens via the `deployment.yaml` file that is created when calling the [kuberneteth](./kuberneteth) script
+
+the deployment will set up a [geth](https://github.com/ethereum/go-ethereum) cluster consisting of:
+
+* a [bootnode](https://github.com/ethereum/go-ethereum/wiki/Setting-up-private-network-or-local-cluster#setup-bootnode)
+* genesis node (that writes the genesis block initially) - and starts to run normally afterwards
+* miner node(s) (depending on the configuration in [kuberneteth.yaml](./kuberneteth.yaml))
+* member node(s) (depending on the configuration in [kuberneteth.yaml](./kuberneteth.yaml))
+* a monitor to watch the status of the cluster (via [ethereum-netstats](https://github.com/cubedro/eth-netstats) and [eth-net-intelligence-api](https://github.com/cubedro/eth-net-intelligence-api))
+
+## limitations
+* persistent storage of blocks and any data that is usually in the `datadir` (like `.ethereum`) is done via [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) -> make sure to keep it clean, as it is not managed
+* depending on the workers (cpu) the mining time may vary
 
 ## configuration
 the deployment can be configured on a high level via a yaml file [kuberneteth.yaml](kuberneteth.yaml)
@@ -75,21 +92,6 @@ geth:
   # general verbosity of geth [1..5]
   verbosity: 3
 ```
-
-## deployment and cluster setup
-the deployment of the ethereum network nodes happens via the `deployment.yaml` file that is created when calling the [kuberneteth](./kuberneteth) script
-
-the deployment will set up a [geth](https://github.com/ethereum/go-ethereum) cluster consisting of:
-
-* a [bootnode](https://github.com/ethereum/go-ethereum/wiki/Setting-up-private-network-or-local-cluster#setup-bootnode)
-* genesis node (that writes the genesis block initially) - and starts to run normally afterwards
-* miner node(s) (depending on the configuration in [kuberneteth.yaml](./kuberneteth.yaml))
-* member node(s) (depending on the configuration in [kuberneteth.yaml](./kuberneteth.yaml))
-* a monitor to watch the status of the cluster (via [ethereum-netstats](https://github.com/cubedro/eth-netstats) and [eth-net-intelligence-api](https://github.com/cubedro/eth-net-intelligence-api))
-
-## limitations
-* persistent storage of blocks and any data that is usually in the `datadir` (like `.ethereum`) is done via [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) -> make sure to keep it clean, as it is not managed
-* depending on the workers (cpu) the mining time may vary
 
 ## workflow
 once the kubernetes cluster is up and healthy (verify via `kubectl cluster-info`), you can deploy the geth cluster via the following sequence:
