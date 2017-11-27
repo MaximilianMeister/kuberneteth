@@ -10,6 +10,8 @@ def set_node_template_vars(values)
   @Node_WSPort           = values["geth"]["Node_WSPort"]
   @NodeP2P_ListenAddr    = values["geth"]["NodeP2P_ListenAddr"]
   @NodeP2P_DiscoveryAddr = values["geth"]["NodeP2P_DiscoveryAddr"]
+  @Dashboard_Port        = values["geth"]["Dashboard_Port"]
+  @Dashboard_Refresh     = values["geth"]["Dashboard_Refresh"]
   @nodePort_rpc          = values["k8s"]["nodePort_rpc"]
   @nodePort_ipc          = values["k8s"]["nodePort_ipc"]
   @replicas              = values["k8s"]["replicas"]
@@ -163,6 +165,12 @@ spec:
       targetPort: <%= @NodeP2P_DiscoveryAddr %>
 <%- if @nodePort_ipc -%>
       nodePort: <%= @nodePort_ipc %>
+<% end -%>
+<%- if @Dashboard_Port -%>
+    - name: <%= @Node_UserIdent %>-dashboard
+      protocol: TCP
+      port: <%= @Dashboard_Port %>
+      targetPort: <%= @Dashboard_Port %>
 <% end -%>
 <% end -%>
 
@@ -328,6 +336,9 @@ spec:
         args:
         - "-cx"
         - "/usr/local/bin/geth \
+<%- if @Dashboard_Port || @Dashboard_Refresh -%>
+           --dashboard \
+<% end -%>
 <%- if @Eth_Etherbase && @Eth_MinerThreads -%>
            --netrestrict <%= @config["geth"]["NodeP2P_Netrestrict"] %> \
            --verbosity <%= @config["geth"]["verbosity"] %>  \
@@ -346,6 +357,9 @@ spec:
           - containerPort: <%= @NodeP2P_ListenAddr %>
             protocol: UDP
           - containerPort: <%= @NodeP2P_DiscoveryAddr %>
+<%- if @Dashboard_Port -%>
+          - containerPort: <%= @Dashboard_Port %>
+<% end -%>
         volumeMounts:
         - name: <%= @Node_UserIdent %>-persistent-storage
           mountPath: <%= @Node_DataDir %>

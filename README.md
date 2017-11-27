@@ -42,6 +42,9 @@ nodes:
       Node_WSPort: 8546
       NodeP2P_ListenAddr: 30301
       NodeP2P_DiscoveryAddr: 30303
+      # experimental built in dashboard (optional) only works on > v1.7.3
+      #Dashboard_Port: 8080
+      #Dashboard_Refresh: 3000000000
 # keep adding nodes
 # - member:
 # ...

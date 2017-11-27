@@ -58,3 +58,10 @@ StaticNodes = []
 TrustedNodes = []
 ListenAddr = ":<%= @NodeP2P_DiscoveryAddr %>"
 EnableMsgEvents = false
+
+<%- if @Dashboard_Port || @Dashboard_Refresh -%>
+[Dashboard]
+Host = "0.0.0.0"
+Port = <%= @Dashboard_Port %>
+Refresh = <%= @Dashboard_Refresh %>
+<% end -%>

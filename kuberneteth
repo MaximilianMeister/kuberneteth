@@ -20,6 +20,8 @@ def set_node_template_vars(values)
   @Node_WSPort           = values["geth"]["Node_WSPort"]
   @NodeP2P_ListenAddr    = values["geth"]["NodeP2P_ListenAddr"]
   @NodeP2P_DiscoveryAddr = values["geth"]["NodeP2P_DiscoveryAddr"]
+  @Dashboard_Port        = values["geth"]["Dashboard_Port"]
+  @Dashboard_Refresh     = values["geth"]["Dashboard_Refresh"]
   @nodePort_rpc          = values["k8s"]["nodePort_rpc"]
   @nodePort_ipc          = values["k8s"]["nodePort_ipc"]
   @replicas              = values["k8s"]["replicas"]
