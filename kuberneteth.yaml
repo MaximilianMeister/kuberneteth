@@ -51,6 +51,7 @@ keystore:
 # generic geth related options
 geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
+  # due to some config file changes in geth it needs to be > 1.8.0
   version: stable
   # network id (1 is mainnet)
   networkId: 1101

@@ -8,13 +8,16 @@ Etherbase = "<%= @Eth_Etherbase %>"
 MinerThreads = <%= @Eth_MinerThreads %>
 <% end -%>
 GasPrice = 18000000000
-EthashCacheDir = "ethash"
-EthashCachesInMem = 2
-EthashCachesOnDisk = 3
-EthashDatasetDir = "/root/.ethash"
-EthashDatasetsInMem = 1
-EthashDatasetsOnDisk = 2
 EnablePreimageRecording = false
+
+[Eth.Ethash]
+CacheDir = "ethash"
+CachesInMem = 2
+CachesOnDisk = 3
+DatasetDir = "/root/.ethash"
+DatasetsInMem = 1
+DatasetsOnDisk = 2
+PowMode = 0
 
 [Eth.TxPool]
 NoLocals = false
@@ -43,6 +46,7 @@ IPCPath = "<%= @Node_DataDir %>/geth.ipc"
 HTTPHost = "0.0.0.0"
 HTTPPort = <%= @Node_HTTPPort %>
 HTTPCors = ["*"]
+HTTPVirtualHosts = ["*"]
 HTTPModules = ["db", "eth", "net", "web3", "personal", "web3"]
 WSHost = "0.0.0.0"
 WSPort = <%= @Node_WSPort %>
@@ -51,7 +55,6 @@ WSModules = ["net", "web3", "eth", "shh"]
 [Node.P2P]
 MaxPeers = 25
 NoDiscovery = false
-DiscoveryV5Addr = ":30304"
 BootstrapNodes = []
 BootstrapNodesV5 = []
 StaticNodes = []
