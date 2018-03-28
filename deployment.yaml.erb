@@ -315,27 +315,19 @@ spec:
         - name: genesis-config-persistent-storage
           mountPath: /etc/geth/genesis/Genesis-geth.json
           subPath: Genesis-geth.json
-      - name: <%= @Node_UserIdent %>-init-container
-        image: ethereum/client-go:<%= @config["geth"]["version"] %>
-        command: [ "sh" ]
-        args:
-        - "-cx"
-        - "ENODE=$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address);
-           ENODE_ESC=$(echo $ENODE | sed 's@//@\\\\/\\\\/@g');
-           sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;
-           sed -i \"s/BootstrapNodesV5 = \\[\\]/BootstrapNodesV5 = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;"
-        volumeMounts:
-        - name: <%= @Node_UserIdent %>-config-persistent-storage
-          mountPath: /etc/geth/<%= @Node_UserIdent %>
-        - name: geth-boot-node-persistent-storage
-          mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
       containers:
       - name: <%= @Node_UserIdent %>-container
         image: ethereum/client-go:<%= @config["geth"]["version"] %>
         command: [ "sh" ]
         args:
         - "-cx"
-        - "/usr/local/bin/geth \
+        - "mkdir -p /etc/geth/<%= @Node_UserIdent %>;
+           cp /etc/gethconfigmap/<%= @Node_UserIdent %>/gethconfig.toml /etc/geth/<%= @Node_UserIdent %>;
+           ENODE=$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address);
+           ENODE_ESC=$(echo $ENODE | sed 's@//@\\\\/\\\\/@g');
+           sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;
+           sed -i \"s/BootstrapNodesV5 = \\[\\]/BootstrapNodesV5 = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;
+           /usr/local/bin/geth \
 <%- if @Dashboard_Port || @Dashboard_Refresh -%>
            --dashboard \
 <% end -%>
@@ -359,7 +351,7 @@ spec:
         - name: <%= @Node_UserIdent %>-persistent-storage
           mountPath: <%= @Node_DataDir %>
         - name: <%= @Node_UserIdent %>-config-persistent-storage
-          mountPath: /etc/geth/<%= @Node_UserIdent %>
+          mountPath: /etc/gethconfigmap/<%= @Node_UserIdent %>
         - name: keystore-config-persistent-storage
           mountPath: <%= @Node_DataDir %>/keystore/<%= @config["keystore"]["name"] %>
           subPath: <%= @config["keystore"]["name"] %>
