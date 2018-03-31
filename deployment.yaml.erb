@@ -95,6 +95,7 @@ data:
 <% end -%>
     ]
 
+<%- unless @config["geth"]["network"]["public"] -%>
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -108,7 +109,7 @@ data:
   Genesis-geth.json: |-
     {
         "config": {
-            "chainId": <%= @config["geth"]["networkId"] %>,
+            "chainId": <%= @config["geth"]["network"]["id"] %>,
             "homesteadBlock": 0,
             "eip155Block": 0,
             "eip158Block": 0
@@ -124,6 +125,7 @@ data:
         "alloc" : {
         }
     }
+<% end -%>
 
 <%- @nodes.each do |node| -%>
 <%= set_node_template_vars(node.values.first) -%>
@@ -174,6 +176,7 @@ spec:
 <% end -%>
 <% end -%>
 
+<%- unless @config["geth"]["network"]["public"] -%>
 ---
 apiVersion: v1
 kind: Service
@@ -277,6 +280,7 @@ spec:
       items:
       - key: Genesis-geth.json
         path: Genesis-geth.json
+<% end -%>
 
 <%- @nodes.each do |node| -%>
 <%= set_node_template_vars(node.values.first) -%>
@@ -298,6 +302,7 @@ spec:
         name: <%= @Node_UserIdent %>-deployment
     spec:
       initContainers:
+<%- unless @config["geth"]["network"]["public"] -%>
       - name: <%= @Node_UserIdent %>-genesis-init-container
         image: ethereum/client-go:<%= @config["geth"]["version"] %>
         command: [ "sh" ]
@@ -315,6 +320,7 @@ spec:
         - name: genesis-config-persistent-storage
           mountPath: /etc/geth/genesis/Genesis-geth.json
           subPath: Genesis-geth.json
+<% end -%>
       containers:
       - name: <%= @Node_UserIdent %>-container
         image: ethereum/client-go:<%= @config["geth"]["version"] %>
@@ -323,10 +329,12 @@ spec:
         - "-cx"
         - "mkdir -p /etc/geth/<%= @Node_UserIdent %>;
            cp /etc/gethconfigmap/<%= @Node_UserIdent %>/gethconfig.toml /etc/geth/<%= @Node_UserIdent %>;
+<%- unless @config["geth"]["network"]["public"] -%>
            ENODE=$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address);
            ENODE_ESC=$(echo $ENODE | sed 's@//@\\\\/\\\\/@g');
            sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;
            sed -i \"s/BootstrapNodesV5 = \\[\\]/BootstrapNodesV5 = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;
+<% end -%>
            /usr/local/bin/geth \
 <%- if @Dashboard_Port || @Dashboard_Refresh -%>
            --dashboard \
@@ -334,7 +342,9 @@ spec:
 <%- if @Eth_Etherbase && @Eth_MinerThreads -%>
            --mine \
 <% end -%>
+<%- unless @config["geth"]["network"]["public"] -%>
            --netrestrict <%= @config["geth"]["NodeP2P_Netrestrict"] %> \
+<% end -%>
            --verbosity <%= @config["geth"]["verbosity"] %>  \
            --config /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;"
         ports:
@@ -354,12 +364,11 @@ spec:
         - name: keystore-config-persistent-storage
           mountPath: <%= @Node_DataDir %>/keystore/<%= @config["keystore"]["name"] %>
           subPath: <%= @config["keystore"]["name"] %>
+<%- unless @config["geth"]["network"]["public"] -%>
         - name: geth-boot-node-persistent-storage
           mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
+<% end -%>
       volumes:
-      - name: geth-boot-node-persistent-storage
-        hostPath:
-          path: /var/lib/docker/geth-storage/bootnode
       - name: keystore-config-persistent-storage
 <%- if @config["keystore"]["secret"] -%>
         secret:
@@ -371,12 +380,17 @@ spec:
           - key: <%= @config["keystore"]["name"] %>
             path: <%= @config["keystore"]["name"] %>
 <% end -%>
+<%- unless @config["geth"]["network"]["public"] -%>
+      - name: geth-boot-node-persistent-storage
+        hostPath:
+          path: /var/lib/docker/geth-storage/bootnode
       - name: genesis-config-persistent-storage
         configMap:
           name: genesis-config
           items:
           - key: Genesis-geth.json
             path: Genesis-geth.json
+<% end -%>
       - name: <%= @Node_UserIdent %>-persistent-storage
         hostPath:
           path: /var/lib/docker/geth-storage/<%= @Node_UserIdent %>
