@@ -1,5 +1,5 @@
 [Eth]
-NetworkId = <%= @config["geth"]["networkId"] %>
+NetworkId = <%= @config["geth"]["network"]["id"] %>
 SyncMode = "fast"
 LightPeers = 20
 DatabaseCache = 128
@@ -55,8 +55,10 @@ WSModules = ["net", "web3", "eth", "shh"]
 [Node.P2P]
 MaxPeers = 25
 NoDiscovery = false
+<%- unless @config["geth"]["network"]["public"] -%>
 BootstrapNodes = []
 BootstrapNodesV5 = []
+<% end -%>
 StaticNodes = []
 TrustedNodes = []
 ListenAddr = ":<%= @NodeP2P_DiscoveryAddr %>"

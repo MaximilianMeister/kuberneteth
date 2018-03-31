@@ -83,8 +83,11 @@ geth:
   # you can find suitable tags in https://hub.docker.com/r/ethereum/client-go/tags/
   # due to some config file changes in geth it needs to be > 1.8.0
   version: stable
-  # network id (1 is mainnet)
-  networkId: 1101
+  network:
+    # network id (1: mainnet, 3: ropsten, 4: rinkeby ... )
+    id: 1101
+    # public (true|false) is it a public network?
+    public: false
   # hex value of initial difficulty defined in the genesis block
   difficulty: "0x400"
   # as it is a private cluster, provide a CIDR of the cluster's network
