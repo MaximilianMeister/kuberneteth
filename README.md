@@ -20,7 +20,7 @@ the deployment will set up a [geth](https://github.com/ethereum/go-ethereum) clu
 * a monitor to watch the status of the cluster (via [ethereum-netstats](https://github.com/cubedro/eth-netstats) and [eth-net-intelligence-api](https://github.com/cubedro/eth-net-intelligence-api))
 
 ## limitations
-* persistent storage of blocks and any data that is usually in the `datadir` (like `.ethereum`) is done via [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) -> make sure to keep it clean, as it is not managed
+* persistent storage of blocks and any data that is usually in the `datadir` (like `.ethereum`) is done via [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) -> make sure to keep it clean, as it is not managed (usually `rm -rf /var/lib/docker/geth-storage` on all k8s nodes should do the trick)
 * depending on the workers (cpu) the mining time may vary
 
 ## configuration
