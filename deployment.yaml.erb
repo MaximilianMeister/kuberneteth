@@ -2,19 +2,22 @@
 # insert readiness checks
 <%
 def set_node_template_vars(values)
-  @Eth_Etherbase         = values["geth"]["Eth_Etherbase"]
-  @Eth_MinerThreads      = values["geth"]["Eth_MinerThreads"]
-  @Node_UserIdent        = values["geth"]["Node_UserIdent"]
-  @Node_DataDir          = values["geth"]["Node_DataDir"]
-  @Node_HTTPPort         = values["geth"]["Node_HTTPPort"]
-  @Node_WSPort           = values["geth"]["Node_WSPort"]
-  @NodeP2P_ListenAddr    = values["geth"]["NodeP2P_ListenAddr"]
-  @NodeP2P_DiscoveryAddr = values["geth"]["NodeP2P_DiscoveryAddr"]
-  @Dashboard_Port        = values["geth"]["Dashboard_Port"]
-  @Dashboard_Refresh     = values["geth"]["Dashboard_Refresh"]
-  @nodePort_rpc          = values["k8s"]["nodePort_rpc"]
-  @nodePort_ipc          = values["k8s"]["nodePort_ipc"]
-  @replicas              = values["k8s"]["replicas"]
+  @replicate              = values["replicate"]
+  @exposed                = values["exposed"]
+  @metrics                = values["geth"]["metrics"]
+  @Eth_Etherbase          = values["geth"]["Eth_Etherbase"]
+  @Eth_MinerThreads       = values["geth"]["Eth_MinerThreads"]
+  @Node_UserIdent         = values["geth"]["Node_UserIdent"]
+  @Node_DataDir           = values["geth"]["Node_DataDir"]
+  @Node_HTTPPort          = values["geth"]["Node_HTTPPort"]
+  @Node_WSPort            = values["geth"]["Node_WSPort"]
+  @NodeP2P_ListenAddr     = values["geth"]["NodeP2P_ListenAddr"]
+  @NodeP2P_DiscoveryAddr  = values["geth"]["NodeP2P_DiscoveryAddr"]
+  @Dashboard_Port         = values["geth"]["Dashboard_Port"]
+  @Dashboard_Refresh      = values["geth"]["Dashboard_Refresh"]
+  @nodePort_rpc           = values["k8s"]["nodePort_rpc"]
+  @nodePort_ipc           = values["k8s"]["nodePort_ipc"]
+  @replicas               = values["k8s"]["replicas"]
   return
 end
 -%>
@@ -34,21 +37,24 @@ data:
     <%= line -%>
 <% end -%>
 <% end -%>
+
 <%- @nodes.each do |node| -%>
 <%= set_node_template_vars(node.values.first) -%>
+<%- (0..@replicate).each do |nodeNumber| -%>
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: gethconfig-<%= @Node_UserIdent %>
+  name: gethconfig-<%= @Node_UserIdent + nodeNumber.to_s %>
   namespace: default
   labels:
     app: kuberneteth
-    name: gethconfig-<%= @Node_UserIdent %>
+    name: gethconfig-<%= @Node_UserIdent + nodeNumber.to_s %>
 data:
   gethconfig: |-
-<%- File.readlines("#{@Node_UserIdent}.toml").each do |line| -%>
+<%- File.readlines("#{@Node_UserIdent}#{nodeNumber}.toml").each do |line| -%>
     <%= line -%>
+<% end -%>
 <% end -%>
 <% end %>
 
@@ -66,8 +72,9 @@ data:
     [
 <%- @nodes.each_with_index do |node, index| -%>
 <%= set_node_template_vars(node.values.first) -%>
+<%- (0..@replicate).each do |nodeNumber| -%>
       {
-        "name"              : "<%= @Node_UserIdent %>",
+        "name"              : "<%= @Node_UserIdent + nodeNumber.to_s %>",
         "cwd"               : ".",
         "script"            : "app.js",
         "log_date_format"   : "YYYY-MM-DD HH:mm Z",
@@ -78,19 +85,20 @@ data:
         "env":
         {
           "NODE_ENV"        : "production",
-          "RPC_HOST"        : "<%= @Node_UserIdent %>-rpchost",
+          "RPC_HOST"        : "<%= @Node_UserIdent + nodeNumber.to_s %>-rpchost",
           "RPC_PORT"        : "<%= @Node_HTTPPort %>",
           "LISTENING_PORT"  : "<%= @NodeP2P_DiscoveryAddr %>",
-          "INSTANCE_NAME"   : "<%= @Node_UserIdent %>",
+          "INSTANCE_NAME"   : "<%= @Node_UserIdent + nodeNumber.to_s %>",
           "CONTACT_DETAILS" : "",
           "WS_SERVER"       : "localhost:3001",
           "WS_SECRET"       : "connectme",
           "VERBOSITY"       : <%= @config["monitor"]["verbosity"] %>
         }
-<%- if index == @nodes.length-1 -%>
+<%- if nodeNumber == @replicate && index == @nodes.length-1 -%>
       }
 <% else -%>
       },
+<% end -%>
 <% end -%>
 <% end -%>
     ]
@@ -116,7 +124,7 @@ data:
         },
         "coinbase" : "0x0000000000000000000000000000000000000000",
         "difficulty" : "<%= @config["geth"]["difficulty"] %>",
-        "extraData" : "0x",
+        "extraData" : "",
         "gasLimit" : "0x47e7c5",
         "nonce" : "0x0000000000000042",
         "mixhash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -129,15 +137,16 @@ data:
 
 <%- @nodes.each do |node| -%>
 <%= set_node_template_vars(node.values.first) -%>
+<%- (0..@replicate).each do |nodeNumber| -%>
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: <%= @Node_UserIdent %>-svc
+  name: <%= @Node_UserIdent + nodeNumber.to_s %>-svc
   labels:
     app: kuberneteth
     tier: backend
-    name: <%= @Node_UserIdent %>-svc
+    name: <%= @Node_UserIdent + nodeNumber.to_s %>-svc
 spec:
   selector:
     app: kuberneteth
@@ -146,33 +155,60 @@ spec:
   type: NodePort
 <% end -%>
   ports:
-    - name: <%= @Node_UserIdent %>-jsonrpc
+    - name: <%= @Node_UserIdent + nodeNumber.to_s %>-jsonrpc
       protocol: TCP
       port: <%= @Node_HTTPPort %>
       targetPort: <%= @Node_HTTPPort %>
 <%- if @nodePort_rpc -%>
-      nodePort: <%= @nodePort_rpc %>
+      nodePort: <%= @nodePort_rpc + nodeNumber %>
 <% end -%>
-    - name: <%= @Node_UserIdent %>-wsrpc
+    - name: <%= @Node_UserIdent + nodeNumber.to_s %>-wsrpc
       protocol: TCP
       port: <%= @Node_WSPort %>
       targetPort: <%= @Node_WSPort %>
-    - name: <%= @Node_UserIdent %>-ipc-listen
+    - name: <%= @Node_UserIdent + nodeNumber.to_s %>-ipc-listen
       protocol: UDP
       port: <%= @NodeP2P_ListenAddr %>
       targetPort: <%= @NodeP2P_ListenAddr %>
-    - name: <%= @Node_UserIdent %>-ipc-discovery
+    - name: <%= @Node_UserIdent + nodeNumber.to_s %>-ipc-discovery
       protocol: TCP
       port: <%= @NodeP2P_DiscoveryAddr %>
       targetPort: <%= @NodeP2P_DiscoveryAddr %>
 <%- if @nodePort_ipc -%>
-      nodePort: <%= @nodePort_ipc %>
+      nodePort: <%= @nodePort_ipc + nodeNumber %>
 <% end -%>
 <%- if @Dashboard_Port -%>
-    - name: <%= @Node_UserIdent %>-dashboard
+    - name: <%= @Node_UserIdent + nodeNumber.to_s %>-dashboard
       protocol: TCP
       port: <%= @Dashboard_Port %>
       targetPort: <%= @Dashboard_Port %>
+<% end -%>
+
+<%- if @exposed -%>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: <%= @Node_UserIdent + nodeNumber.to_s %>-web-svc
+  labels:
+    app: kuberneteth
+    tier: backend
+    name: <%= @Node_UserIdent + nodeNumber.to_s %>-web-svc
+spec:
+  selector:
+    app: kuberneteth
+    tier: backend
+  type: LoadBalancer
+  ports:
+    - name: <%= @Node_UserIdent + nodeNumber.to_s %>-jsonrpc
+      protocol: TCP
+      port: <%= @Node_HTTPPort %>
+      targetPort: <%= @Node_HTTPPort %>
+    - name: <%= @Node_UserIdent + nodeNumber.to_s %>-wsrpc
+      protocol: TCP
+      port: <%= @Node_WSPort %>
+      targetPort: <%= @Node_WSPort %>
+<% end -%>
 <% end -%>
 <% end -%>
 
@@ -284,26 +320,27 @@ spec:
 
 <%- @nodes.each do |node| -%>
 <%= set_node_template_vars(node.values.first) -%>
+<%- (0..@replicate).each do |nodeNumber| -%>
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: geth-<%= @Node_UserIdent %>-deployment
+  name: geth-<%= @Node_UserIdent + nodeNumber.to_s %>-deployment
 spec:
   strategy:
     type: RollingUpdate
   replicas: <%= @replicas %>
   template:
     metadata:
-      name: geth-<%= @Node_UserIdent %>-deployment
+      name: geth-<%= @Node_UserIdent + nodeNumber.to_s %>-deployment
       labels:
         app: kuberneteth
         tier: backend
-        name: <%= @Node_UserIdent %>-deployment
+        name: <%= @Node_UserIdent + nodeNumber.to_s %>-deployment
     spec:
       initContainers:
 <%- unless @config["geth"]["network"]["public"] -%>
-      - name: <%= @Node_UserIdent %>-genesis-init-container
+      - name: <%= @Node_UserIdent + nodeNumber.to_s %>-genesis-init-container
         image: ethereum/client-go:<%= @config["geth"]["version"] %>
         command: [ "sh" ]
         args:
@@ -313,7 +350,7 @@ spec:
              touch <%= @Node_DataDir %>/genesis_created;
            fi;"
         volumeMounts:
-        - name: <%= @Node_UserIdent %>-persistent-storage
+        - name: <%= @Node_UserIdent + nodeNumber.to_s %>-persistent-storage
           mountPath: <%= @Node_DataDir %>
         - name: geth-boot-node-persistent-storage
           mountPath: <%= @config["bootnode"]["geth"]["Node_DataDir"] %>
@@ -322,18 +359,18 @@ spec:
           subPath: Genesis-geth.json
 <% end -%>
       containers:
-      - name: <%= @Node_UserIdent %>-container
+      - name: <%= @Node_UserIdent + nodeNumber.to_s %>-container
         image: ethereum/client-go:<%= @config["geth"]["version"] %>
         command: [ "sh" ]
         args:
         - "-cx"
-        - "mkdir -p /etc/geth/<%= @Node_UserIdent %>;
-           cp /etc/gethconfigmap/<%= @Node_UserIdent %>/gethconfig.toml /etc/geth/<%= @Node_UserIdent %>;
+        - "mkdir -p /etc/geth/<%= @Node_UserIdent + nodeNumber.to_s %>;
+           cp /etc/gethconfigmap/<%= @Node_UserIdent + nodeNumber.to_s %>/gethconfig.toml /etc/geth/<%= @Node_UserIdent + nodeNumber.to_s %>;
 <%- unless @config["geth"]["network"]["public"] -%>
            ENODE=$(cat <%= @config["bootnode"]["geth"]["Node_DataDir"] %>/enode.address);
            ENODE_ESC=$(echo $ENODE | sed 's@//@\\\\/\\\\/@g');
-           sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;
-           sed -i \"s/BootstrapNodesV5 = \\[\\]/BootstrapNodesV5 = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;
+           sed -i \"s/BootstrapNodes = \\[\\]/BootstrapNodes = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent + nodeNumber.to_s %>/gethconfig.toml;
+           sed -i \"s/BootstrapNodesV5 = \\[\\]/BootstrapNodesV5 = [\\\"$ENODE_ESC\\\"]/g\" /etc/geth/<%= @Node_UserIdent + nodeNumber.to_s %>/gethconfig.toml;
 <% end -%>
            /usr/local/bin/geth \
 <%- if @Dashboard_Port || @Dashboard_Refresh -%>
@@ -342,11 +379,14 @@ spec:
 <%- if @Eth_Etherbase && @Eth_MinerThreads -%>
            --mine \
 <% end -%>
+<%- if @metrics -%>
+           --metrics \
+<% end -%>
 <%- unless @config["geth"]["network"]["public"] -%>
            --netrestrict <%= @config["geth"]["NodeP2P_Netrestrict"] %> \
 <% end -%>
            --verbosity <%= @config["geth"]["verbosity"] %>  \
-           --config /etc/geth/<%= @Node_UserIdent %>/gethconfig.toml;"
+           --config /etc/geth/<%= @Node_UserIdent + nodeNumber.to_s %>/gethconfig.toml;"
         ports:
           - containerPort: <%= @Node_HTTPPort %>
           - containerPort: <%= @Node_WSPort %>
@@ -357,10 +397,10 @@ spec:
           - containerPort: <%= @Dashboard_Port %>
 <% end -%>
         volumeMounts:
-        - name: <%= @Node_UserIdent %>-persistent-storage
+        - name: <%= @Node_UserIdent + nodeNumber.to_s %>-persistent-storage
           mountPath: <%= @Node_DataDir %>
-        - name: <%= @Node_UserIdent %>-config-persistent-storage
-          mountPath: /etc/gethconfigmap/<%= @Node_UserIdent %>
+        - name: <%= @Node_UserIdent + nodeNumber.to_s %>-config-persistent-storage
+          mountPath: /etc/gethconfigmap/<%= @Node_UserIdent + nodeNumber.to_s %>
         - name: keystore-config-persistent-storage
           mountPath: <%= @Node_DataDir %>/keystore/<%= @config["keystore"]["name"] %>
           subPath: <%= @config["keystore"]["name"] %>
@@ -391,15 +431,16 @@ spec:
           - key: Genesis-geth.json
             path: Genesis-geth.json
 <% end -%>
-      - name: <%= @Node_UserIdent %>-persistent-storage
+      - name: <%= @Node_UserIdent + nodeNumber.to_s %>-persistent-storage
         hostPath:
-          path: /var/lib/docker/geth-storage/<%= @Node_UserIdent %>
-      - name: <%= @Node_UserIdent %>-config-persistent-storage
+          path: /var/lib/docker/geth-storage/<%= @Node_UserIdent + nodeNumber.to_s %>
+      - name: <%= @Node_UserIdent + nodeNumber.to_s %>-config-persistent-storage
         configMap:
-          name: gethconfig-<%= @Node_UserIdent %>
+          name: gethconfig-<%= @Node_UserIdent + nodeNumber.to_s %>
           items:
           - key: gethconfig
             path: gethconfig.toml
+<% end -%>
 <% end -%>
 
 ---
@@ -415,16 +456,19 @@ spec:
   selector:
     app: kuberneteth
     tier: frontend
-<%- if @config["monitor"]["nodePort"] -%>
-  type: NodePort
-<% end -%>
+  type: <%= @config["monitor"]["serviceType"] %>
   ports:
     - name: <%= @config["monitor"]["name"] %>-port
       protocol: TCP
+      <%- case @config["monitor"]["serviceType"] when "ClusterIP" -%>
       port: 3001
-<%- if @config["monitor"]["nodePort"] -%>
-      nodePort: <%= @config["monitor"]["nodePort"] %>
-<% end -%>
+      <%- when "NodePort" -%>
+      port: 3001
+      targetPort: 3001
+      <%- when "LoadBalancer" -%>
+      port: 80
+      targetPort: 3001
+      <%- end -%>
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -452,7 +496,9 @@ spec:
            cp /monitor-configmap/app.json /ethmonitor/app.json;
 <%- @nodes.each do |node| -%>
 <%= set_node_template_vars(node.values.first) -%>
-           sed -i \"s/<%= @Node_UserIdent %>-rpchost/$<%= @Node_UserIdent.upcase %>_SVC_SERVICE_HOST/g\" /ethmonitor/app.json;
+<%- (0..@replicate).each do |nodeNumber| -%>
+           sed -i \"s/<%= @Node_UserIdent + nodeNumber.to_s %>-rpchost/$<%= @Node_UserIdent.upcase + nodeNumber.to_s %>_SVC_SERVICE_HOST/g\" /ethmonitor/app.json;
+<% end -%>
 <% end -%>
            exit 0;"
         volumeMounts:

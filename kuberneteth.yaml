@@ -11,18 +11,27 @@ bootnode:
 # here you can add as many nodes as you like, name and configure them
 nodes:
 - miner:
+    # the number of extra instances of this node you want to create [0 or more]
+    replicate: 0
+    # [true or false] If true a LoadBalancer will be created with an external facing IP
+    exposed: false
     # this config values will end up in the k8s manifest directly
     k8s:
       # open a port on each node (optional)
-      nodePort_rpc: 30001
-      nodePort_ipc: 30002
+      # if replicate is > 0 these numbers will be incremented for each extra instance
+      # note: if replicate >= 1000 there will be collisions
+      nodePort_rpc: 30000
+      nodePort_ipc: 31000
       replicas: 1
     # this config values will alter the geth config toml file which will end up as a ConfigMap in the k8s manifest
     geth:
+      # if set then metrics will be enabled on the node.
+      metrics: false
       # address where the mining rewards will go to (optional)
       Eth_Etherbase: "0x023e291a99d21c944a871adcc44561a58f99bdbc"
       # threads (optional)
       Eth_MinerThreads: 1
+      # this name will be appened by the node replicated number e.g. miner0
       Node_UserIdent: miner
       Node_DataDir: /etc/testnet/miner
       Node_HTTPPort: 8545
@@ -37,10 +46,13 @@ nodes:
 # ...
 monitor:
   name: monitor
+  # type can be [ClusterIP, NodePort, LoadBalancer]
+  serviceType: LoadBalancer
   # verbosity can be within [0..3]
   verbosity: 0
   k8s:
-    nodePort: 30007
+    # make sure this nodePort is not the same as any of the nodes nodePorts
+    nodePort: 32000
 # create a private key and add it to the keystore folder
 # ... or just use the example one for testing
 keystore:
