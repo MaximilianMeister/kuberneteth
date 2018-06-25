@@ -21,6 +21,7 @@ the deployment will set up a [geth](https://github.com/ethereum/go-ethereum) clu
 
 ## limitations
 * persistent storage of blocks and any data that is usually in the `datadir` (like `.ethereum`) is done via [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) -> make sure to keep it clean, as it is not managed (usually `rm -rf /var/lib/docker/geth-storage` on all k8s nodes should do the trick)
+  also **make sure to disable the PodSecurityPolicy for `hostPath` or whitelist `/var/lib/docker` in your PodSecurityPolicy**
 * depending on the workers (cpu) the mining time may vary
 
 ## configuration
