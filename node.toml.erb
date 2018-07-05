@@ -40,7 +40,7 @@ MaxMessageSize = 1048576
 MinimumAcceptedPOW = 2e-01
 
 [Node]
-UserIdent = "<%= @Node_UserIdent %>"
+UserIdent = "<%= @Node_UserIdent + @NodeNumber.to_s %>"
 DataDir = "<%= @Node_DataDir %>"
 IPCPath = "<%= @Node_DataDir %>/geth.ipc"
 HTTPHost = "0.0.0.0"

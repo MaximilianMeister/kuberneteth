@@ -12,6 +12,8 @@ require "erb"
 #####################
 
 def set_node_template_vars(values)
+  @replicate             = values["replicate"]
+  @exposed               = values["exposed"]
   @Eth_Etherbase         = values["geth"]["Eth_Etherbase"]
   @Eth_MinerThreads      = values["geth"]["Eth_MinerThreads"]
   @Node_UserIdent        = values["geth"]["Node_UserIdent"]
@@ -30,9 +32,12 @@ end
 
 @nodes.each do |node|
   set_node_template_vars(node.values.first)
+  (0..@replicate).each do |nodeNumber|
+    @NodeNumber = nodeNumber
 
-  File.open("#{@Node_UserIdent}.toml", "w") do |f|
-    f.puts (ERB.new(File.read("node.toml.erb"), nil, "-").result)
+    File.open("#{@Node_UserIdent}#{@NodeNumber}.toml", "w") do |f|
+      f.puts (ERB.new(File.read("node.toml.erb"), nil, "-").result)
+    end
   end
 end
 
