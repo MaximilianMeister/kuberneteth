@@ -5,9 +5,8 @@ LightPeers = 20
 DatabaseCache = 128
 <%- if @Eth_Etherbase && @Eth_MinerThreads -%>
 Etherbase = "<%= @Eth_Etherbase %>"
-MinerThreads = <%= @Eth_MinerThreads %>
 <% end -%>
-GasPrice = 18000000000
+MinerGasPrice = 18000000000
 EnablePreimageRecording = false
 
 [Eth.Ethash]
@@ -47,7 +46,7 @@ HTTPHost = "0.0.0.0"
 HTTPPort = <%= @Node_HTTPPort %>
 HTTPCors = ["*"]
 HTTPVirtualHosts = ["*"]
-HTTPModules = ["db", "eth", "net", "web3", "personal", "web3"]
+HTTPModules = ["db", "eth", "net", "web3", "personal", "miner"]
 WSHost = "0.0.0.0"
 WSPort = <%= @Node_WSPort %>
 WSModules = ["net", "web3", "eth", "shh"]

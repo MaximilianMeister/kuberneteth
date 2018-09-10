@@ -30,7 +30,7 @@
       // load web3.js
       var Web3 = require('web3');
       var web3 = new Web3();
-      web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
+      web3.setProvider(new web3.providers.HttpProvider('http://192.168.99.20:8545'));
 
       // load the contract object
       var blockshaperContract = web3.eth.contract(abi);
